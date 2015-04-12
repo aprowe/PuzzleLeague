@@ -1,12 +1,9 @@
 var prompt = require('prompt');
 
 
-var Game = require('./main.js');
+var puzzle = require('./puzzle.js');
 
-g = new Game();
-
-board = g.boards[0]
-
+board = puzzle.game.boards[0]
 
 prompt.start();
 
