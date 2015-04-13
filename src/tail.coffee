@@ -1,5 +1,6 @@
+    
+    ## Instantiate Game
+    new zz.class.game
 
-zz.game = new zz.class.game
-
-## Export main object
-module.exports = zz
+    return zz
+)

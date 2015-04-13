@@ -1,0 +1,65 @@
+<html>
+	<head>
+	<script src='node_modules/jquery/dist/jquery.min.js'></script>
+	<script src='puzzle.js'></script>
+	<style>
+		#puzzle {
+			position: relative;
+			margin: auto;
+			margin-top: 100px;
+			background: darkgrey;
+			overflow: hidden;
+		}
+
+		.block {
+			box-sizing: border-box;
+			position: absolute;
+
+			border-radius: 2px;
+
+			background: teal;
+
+			border: 1px solid black;
+		}
+
+		.cursor {
+			box-sizing: border-box;
+			position: absolute;
+			border: 3px dashed white;
+		}
+
+		#scoreboard {
+			box-sizing: border-box;
+			font-size: 50pt;
+			font-family: Montserrat;
+			position: absolute;
+			top: 50px;
+			left: 50px;
+
+			border: 1px solid blue;
+
+			background: whitesmoke;
+
+			width: 150px;
+			height: 150px;
+
+			text-align: center;
+			line-height: 150px;
+
+			border-radius: 2px;
+
+		}
+	</style>
+	</head>
+	<body>
+		<div id='scoreboard'>
+			<span id='score'></span>
+		</div>
+		<div id='puzzle'></div>
+	</body>
+	<script>
+	$(function(){
+		zz.game.start()
+	});
+	</script>
+</html>

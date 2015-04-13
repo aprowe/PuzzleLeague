@@ -3,9 +3,16 @@
 ##############################
 zz.class.base = class Base
 
-	_events: {}
+	defaults: {}
+
+	constructor: (@_events={})->
+		@_events = {}
+
+		for key, value of @defaults
+			this[key] = value
 
 	on: (event, fn)->
+		console.log(@_events)
 		unless @_events[event]?
 			@_events[event] = []
 
@@ -17,5 +24,9 @@ zz.class.base = class Base
 		# @TODO
 
 	emit: (event, args)->
+		## Call the function on<event>
+		this['on'+event].apply(this, args) if this['on'+event]?
 		return unless @_events[event]?
 		fn.apply(this, args) for fn in @_events[event]
+
+

@@ -1,6 +1,4 @@
 var prompt = require('prompt');
-
-
 var puzzle = require('./puzzle.js');
 
 board = puzzle.game.boards[0]

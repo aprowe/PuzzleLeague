@@ -1,49 +1,70 @@
 ############################################
 ## Board class does most of the game logic
 ############################################
-zz.class.board = class Board extends Base
+zz.class.board = class Board extends zz.class.base
 
-	## Width of board
-	width: 8
+	defaults: 
+		## Width of board
+		width: 8
 
-	## Height of board
-	height: 10
+		## Height of board
+		height: 10
 
-	## Speed of the rows raising (frames per row)
-	speed: 20
+		## Speed of the rows raising (frames per row)
+		speed: 100
 
-	## Counter to keep track of the rows rising
-	counter: 0
+		## Counter to keep track of the rows rising
+		counter: 0
 
-	## Player Cursor
-	cursor: {}
+		## Player Cursor
+		cursor: {}
 
-	## Rendering class
-	renderer: null
+		## Rendering class
+		renderer: null
+
+		score: 0
+
+		blocks: []
+
 
 	constructor: ()->
-		@blocks = []
+		super
 
-
-		c = ['#','@', '%', '*']
-
-		i =0
-		for y in [0..@height-1]
-			for x in [0..@width-1]
-				@blocks.push new ColorBlock(x, y, c[Math.round(Math.random()*100)%4])
-
-		@cursor = new zz.class.positional
-		@cursor.limit [0, @width-1, 0, @height]
-
+		## Set up easy grid getter
 		Object.defineProperty this, 'grid', get: => @blockArray()
 
-	tick: ->
-		@counter++
-		@pushRow() if @counter > @speed
+		## Populate block
+		for y in [-1..4]	
+			@blocks.push b for b in @createRow y
+
+		## Set Up Cursor
+		@cursor = new zz.class.positional
+		@cursor.limit [0, @width-2, 0, @height-2]
+
+
+		## start game ticker
+		zz.game.ticker.on 'tick', =>
+			@counter++
+
+			if @counter > @speed
+				@counter = 0
+				@pushRow() 
+
+			@update()
+
+
+	createRow: (y)-> 
+		(new ColorBlock(x, y) for x in [0..@width-1])
+
 
 	pushRow: ()->
 		@emit 'pushRow'
 		b.y++ for b in @blocks
+
+		@blocks.push b for b in @createRow -1
+
+
+		@update()
 
 	blockArray: ->
 		# return @_blockArray if @_blockArray?
@@ -52,7 +73,7 @@ zz.class.board = class Board extends Base
 		@_blockArray.fill @width, @height
 
 		for b in @blocks
-			@_blockArray[b.x][b.y] = b
+			@_blockArray[b.x][b.y] = b if b.y >= 0
 
 		return @_blockArray
 
@@ -64,6 +85,8 @@ zz.class.board = class Board extends Base
 
 		b1.x = @cursor.x+1 if b1?
 		b2.x = @cursor.x if b2?
+
+		@update()
 
 	match: (blocks)->
 		@emit 'match', blocks
@@ -122,6 +145,7 @@ zz.class.board = class Board extends Base
 
 	getMatches: ->
 		matches = []
+		firstRow = false
 		for row in @getRows()
 			matches.push a for a in @checkRow(row)
 
@@ -130,15 +154,23 @@ zz.class.board = class Board extends Base
 
 		return matches
 
+	clearMatches: ->
+		matches = @getMatches()
+		@clearBlocks m for m in matches
+
+		@score += matches.length
+
+		return matches
+
 	clearBlocks: (blocks)->
 		@blocks.remove(b) for b in blocks
 		@_blockArray = null
 
 	update: ()->
-		@cursor.emit 'check'
-		matches = @getMatches()
-		@clearBlocks(m) for m in matches
-		@fallDown()
+		@fallDown() 
+		while @clearMatches().length
+			@fallDown() 
+
 
 
 	#########################
