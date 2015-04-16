@@ -50,19 +50,17 @@ zz.class.board = class Board extends zz.class.base
 				@counter = 0
 				@pushRow() 
 
-			@update()
-
+		@update()
 
 	createRow: (y)-> 
 		(new ColorBlock(x, y) for x in [0..@width-1])
 
 
 	pushRow: ()->
-		@emit 'pushRow'
 		b.y++ for b in @blocks
+		@cursor.move 0, 1
 
 		@blocks.push b for b in @createRow -1
-
 
 		@update()
 
@@ -81,15 +79,14 @@ zz.class.board = class Board extends zz.class.base
 		b1 = @grid[@cursor.x][@cursor.y]
 		b2 = @grid[@cursor.x+1][@cursor.y]
 
-		@emit 'swap', b1, b2
+		x = @cursor.x
 
-		b1.x = @cursor.x+1 if b1?
-		b2.x = @cursor.x if b2?
-
-		@update()
+		@queue 'swap', [b1, b2], =>
+			b1.x = x+1 if b1?
+			b2.x = x if b2?
+			@update()
 
 	match: (blocks)->
-		@emit 'match', blocks
 		b.remove()
 		@blocks.remove b
 
@@ -141,6 +138,7 @@ zz.class.board = class Board extends zz.class.base
 
 	checkBlocks: (b1, b2)->
 		return false unless b1? and b2?
+		return false if b1.matched? or b2.matched?
 		b1.color == b2.color
 
 	getMatches: ->
@@ -154,13 +152,9 @@ zz.class.board = class Board extends zz.class.base
 
 		return matches
 
-	clearMatches: ->
-		matches = @getMatches()
+	clearMatches: (matches)->
 		@clearBlocks m for m in matches
-
 		@score += matches.length
-
-		return matches
 
 	clearBlocks: (blocks)->
 		@blocks.remove(b) for b in blocks
@@ -168,9 +162,17 @@ zz.class.board = class Board extends zz.class.base
 
 	update: ()->
 		@fallDown() 
-		while @clearMatches().length
-			@fallDown() 
 
+		matches = @getMatches()
+		for m in matches
+			for b in m 
+				b.matched = true
+
+		if matches.length > 0 
+			@queue 'match', [matches], =>
+				@clearMatches matches
+				console.log('update')
+				@update()
 
 
 	#########################

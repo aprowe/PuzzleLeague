@@ -38,6 +38,15 @@ zz.class.domRenderer = class DomRenderer extends zz.class.renderer
         @board = @game.boards[0]
         $ => @setUpElement()
 
+        @board.on 'swap', (b1, b2)=>
+            b1.swapping =  1 if b1?
+            b2.swapping = -1 if b2?
+
+        @board.on 'match', (matches)=>
+            for sets in matches
+                for block in sets
+                    block.matched = 0
+
     setUpElement: ()->
         @element = $ '#puzzle'
         @element.width  @board.width  * @blockSize
@@ -67,15 +76,38 @@ zz.class.domRenderer = class DomRenderer extends zz.class.renderer
             left: cursor.x * @blockSize
 
     renderBlock: (block)->
-        el = $ '<div></div>', class: 'block'
-            .appendTo @element
+        return unless block?
+        offset = 0 
+        if block.swapping?
+            offset = block.swapping+=10 if block.swapping > 0
+            offset = block.swapping-=10 if block.swapping < 0
+
+            if block.swapping <= -@blockSize or block.swapping >= @blockSize
+                @board.done 'swap'
+                delete block.swapping
+                offset = 0
+
+        el = $ '<div></div>', 
+            class: 'block'
+        .appendTo @element
+
+        if block.matched?
+            el.addClass('matched')
+            block.matched++
+
+            if block.matched > 10
+                delete block.matched
+                @board.done 'match'
 
         el.width @blockSize
         el.height @blockSize
 
+        if block.y < 0 
+            el.css opacity: 0.5
+
         el.css 
             bottom: block.y * @blockSize + @offset
-            left:   block.x * @blockSize 
+            left:   block.x * @blockSize + offset
             background: @colors[block.color]
 
 

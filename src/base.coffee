@@ -6,7 +6,13 @@ zz.class.base = class Base
 	defaults: {}
 
 	constructor: (@_events={})->
-		@_events = {}
+		@_events = {
+			#name: [fn1, fn2]
+		}
+
+		@_queue = {
+			#name: [{args: [], fn}, ]
+		}
 
 		for key, value of @defaults
 			this[key] = value
@@ -29,4 +35,11 @@ zz.class.base = class Base
 		return unless @_events[event]?
 		fn.apply(this, args) for fn in @_events[event]
 
+	done: (event)->
+		return unless @_queue[event]?
+		@_queue[event][0].apply(this, @_queue[event][1])
+		delete @_queue[event]
 
+	queue: (event, args, fn)->
+		@emit event, args
+		@_queue[event] = [fn, args]

@@ -29,7 +29,6 @@ zz.class.controller = class Controller extends Base
 			swap:  -> @board.swap()
 
 	dispatch: (key, args)-> 
-		console.log @board
 		@states[@state][key].call(this, args) if @states[@state][key]?
 		zz.game.renderer.render()
 
@@ -46,9 +45,11 @@ zz.class.domController = class DomController extends zz.class.controller
 		super @board
 
 		$ => $('body').keydown (e)=>
-			console.log e.which
+			# console.log e.which
 			key = @map[e.which]
-			@dispatch key if key?
+			if key?
+				e.preventDefault(e)
+				@dispatch key
 
 
 

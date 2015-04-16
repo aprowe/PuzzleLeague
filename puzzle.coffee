@@ -58,7 +58,13 @@ root = if window? then window else this
     	defaults: {}
 
     	constructor: (@_events={})->
-    		@_events = {}
+    		@_events = {
+    			#name: [fn1, fn2]
+    		}
+
+    		@_queue = {
+    			#name: [{args: [], fn}, ]
+    		}
 
     		for key, value of @defaults
     			this[key] = value
@@ -81,7 +87,14 @@ root = if window? then window else this
     		return unless @_events[event]?
     		fn.apply(this, args) for fn in @_events[event]
 
+    	done: (event)->
+    		return unless @_queue[event]?
+    		@_queue[event][0].apply(this, @_queue[event][1])
+    		delete @_queue[event]
 
+    	queue: (event, args, fn)->
+    		@emit event, args
+    		@_queue[event] = [fn, args]
 
     ###########################
     ## Positional Class
@@ -125,7 +138,7 @@ root = if window? then window else this
     zz.class.ticker = class Ticker extends Base
 
     	## Frames per second
-    	framerate: 10
+    	framerate: 25
 
     	## Is Ticker paused?
     	running: false
@@ -233,6 +246,15 @@ root = if window? then window else this
             @board = @game.boards[0]
             $ => @setUpElement()
 
+            @board.on 'swap', (b1, b2)=>
+                b1.swapping =  1 if b1?
+                b2.swapping = -1 if b2?
+
+            @board.on 'match', (matches)=>
+                for sets in matches
+                    for block in sets
+                        block.matched = 0
+
         setUpElement: ()->
             @element = $ '#puzzle'
             @element.width  @board.width  * @blockSize
@@ -262,15 +284,38 @@ root = if window? then window else this
                 left: cursor.x * @blockSize
 
         renderBlock: (block)->
-            el = $ '<div></div>', class: 'block'
-                .appendTo @element
+            return unless block?
+            offset = 0 
+            if block.swapping?
+                offset = block.swapping+=10 if block.swapping > 0
+                offset = block.swapping-=10 if block.swapping < 0
+
+                if block.swapping <= -@blockSize or block.swapping >= @blockSize
+                    @board.done 'swap'
+                    delete block.swapping
+                    offset = 0
+
+            el = $ '<div></div>', 
+                class: 'block'
+            .appendTo @element
+
+            if block.matched?
+                el.addClass('matched')
+                block.matched++
+
+                if block.matched > 10
+                    delete block.matched
+                    @board.done 'match'
 
             el.width @blockSize
             el.height @blockSize
 
+            if block.y < 0 
+                el.css opacity: 0.5
+
             el.css 
                 bottom: block.y * @blockSize + @offset
-                left:   block.x * @blockSize 
+                left:   block.x * @blockSize + offset
                 background: @colors[block.color]
 
 
@@ -309,7 +354,6 @@ root = if window? then window else this
     			swap:  -> @board.swap()
 
     	dispatch: (key, args)-> 
-    		console.log @board
     		@states[@state][key].call(this, args) if @states[@state][key]?
     		zz.game.renderer.render()
 
@@ -326,9 +370,11 @@ root = if window? then window else this
     		super @board
 
     		$ => $('body').keydown (e)=>
-    			console.log e.which
+    			# console.log e.which
     			key = @map[e.which]
-    			@dispatch key if key?
+    			if key?
+    				e.preventDefault(e)
+    				@dispatch key
 
 
 
@@ -386,19 +432,17 @@ root = if window? then window else this
     				@counter = 0
     				@pushRow() 
 
-    			@update()
-
+    		@update()
 
     	createRow: (y)-> 
     		(new ColorBlock(x, y) for x in [0..@width-1])
 
 
     	pushRow: ()->
-    		@emit 'pushRow'
     		b.y++ for b in @blocks
+    		@cursor.move 0, 1
 
     		@blocks.push b for b in @createRow -1
-
 
     		@update()
 
@@ -417,15 +461,14 @@ root = if window? then window else this
     		b1 = @grid[@cursor.x][@cursor.y]
     		b2 = @grid[@cursor.x+1][@cursor.y]
 
-    		@emit 'swap', b1, b2
+    		x = @cursor.x
 
-    		b1.x = @cursor.x+1 if b1?
-    		b2.x = @cursor.x if b2?
-
-    		@update()
+    		@queue 'swap', [b1, b2], =>
+    			b1.x = x+1 if b1?
+    			b2.x = x if b2?
+    			@update()
 
     	match: (blocks)->
-    		@emit 'match', blocks
     		b.remove()
     		@blocks.remove b
 
@@ -477,6 +520,7 @@ root = if window? then window else this
 
     	checkBlocks: (b1, b2)->
     		return false unless b1? and b2?
+    		return false if b1.matched? or b2.matched?
     		b1.color == b2.color
 
     	getMatches: ->
@@ -490,13 +534,9 @@ root = if window? then window else this
 
     		return matches
 
-    	clearMatches: ->
-    		matches = @getMatches()
+    	clearMatches: (matches)->
     		@clearBlocks m for m in matches
-
     		@score += matches.length
-
-    		return matches
 
     	clearBlocks: (blocks)->
     		@blocks.remove(b) for b in blocks
@@ -504,9 +544,17 @@ root = if window? then window else this
 
     	update: ()->
     		@fallDown() 
-    		while @clearMatches().length
-    			@fallDown() 
 
+    		matches = @getMatches()
+    		for m in matches
+    			for b in m 
+    				b.matched = true
+
+    		if matches.length > 0 
+    			@queue 'match', [matches], =>
+    				@clearMatches matches
+    				console.log('update')
+    				@update()
 
 
     	#########################

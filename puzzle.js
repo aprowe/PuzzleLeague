@@ -53,6 +53,7 @@
         var key, ref, value;
         this._events = _events != null ? _events : {};
         this._events = {};
+        this._queue = {};
         ref = this.defaults;
         for (key in ref) {
           value = ref[key];
@@ -89,6 +90,19 @@
           results.push(fn.apply(this, args));
         }
         return results;
+      };
+
+      Base.prototype.done = function(event) {
+        if (this._queue[event] == null) {
+          return;
+        }
+        this._queue[event][0].apply(this, this._queue[event][1]);
+        return delete this._queue[event];
+      };
+
+      Base.prototype.queue = function(event, args, fn) {
+        this.emit(event, args);
+        return this._queue[event] = [fn, args];
       };
 
       return Base;
@@ -150,7 +164,7 @@
         return Ticker.__super__.constructor.apply(this, arguments);
       }
 
-      Ticker.prototype.framerate = 10;
+      Ticker.prototype.framerate = 25;
 
       Ticker.prototype.running = false;
 
@@ -266,6 +280,35 @@
             return _this.setUpElement();
           };
         })(this));
+        this.board.on('swap', (function(_this) {
+          return function(b1, b2) {
+            if (b1 != null) {
+              b1.swapping = 1;
+            }
+            if (b2 != null) {
+              return b2.swapping = -1;
+            }
+          };
+        })(this));
+        this.board.on('match', (function(_this) {
+          return function(matches) {
+            var block, k, len, results, sets;
+            results = [];
+            for (k = 0, len = matches.length; k < len; k++) {
+              sets = matches[k];
+              results.push((function() {
+                var l, len1, results1;
+                results1 = [];
+                for (l = 0, len1 = sets.length; l < len1; l++) {
+                  block = sets[l];
+                  results1.push(block.matched = 0);
+                }
+                return results1;
+              })());
+            }
+            return results;
+          };
+        })(this));
       }
 
       DomRenderer.prototype.setUpElement = function() {
@@ -306,15 +349,45 @@
       };
 
       DomRenderer.prototype.renderBlock = function(block) {
-        var el;
+        var el, offset;
+        if (block == null) {
+          return;
+        }
+        offset = 0;
+        if (block.swapping != null) {
+          if (block.swapping > 0) {
+            offset = block.swapping += 10;
+          }
+          if (block.swapping < 0) {
+            offset = block.swapping -= 10;
+          }
+          if (block.swapping <= -this.blockSize || block.swapping >= this.blockSize) {
+            this.board.done('swap');
+            delete block.swapping;
+            offset = 0;
+          }
+        }
         el = $('<div></div>', {
           "class": 'block'
         }).appendTo(this.element);
+        if (block.matched != null) {
+          el.addClass('matched');
+          block.matched++;
+          if (block.matched > 10) {
+            delete block.matched;
+            this.board.done('match');
+          }
+        }
         el.width(this.blockSize);
         el.height(this.blockSize);
+        if (block.y < 0) {
+          el.css({
+            opacity: 0.5
+          });
+        }
         return el.css({
           bottom: block.y * this.blockSize + this.offset,
-          left: block.x * this.blockSize,
+          left: block.x * this.blockSize + offset,
           background: this.colors[block.color]
         });
       };
@@ -362,7 +435,6 @@
       };
 
       Controller.prototype.dispatch = function(key, args) {
-        console.log(this.board);
         if (this.states[this.state][key] != null) {
           this.states[this.state][key].call(this, args);
         }
@@ -390,9 +462,9 @@
           return function() {
             return $('body').keydown(function(e) {
               var key;
-              console.log(e.which);
               key = _this.map[e.which];
               if (key != null) {
+                e.preventDefault(e);
                 return _this.dispatch(key);
               }
             });
@@ -441,11 +513,11 @@
             _this.counter++;
             if (_this.counter > _this.speed) {
               _this.counter = 0;
-              _this.pushRow();
+              return _this.pushRow();
             }
-            return _this.update();
           };
         })(this));
+        this.update();
       }
 
       Board.prototype.createRow = function(y) {
@@ -459,12 +531,12 @@
 
       Board.prototype.pushRow = function() {
         var b, k, l, len, len1, ref, ref1;
-        this.emit('pushRow');
         ref = this.blocks;
         for (k = 0, len = ref.length; k < len; k++) {
           b = ref[k];
           b.y++;
         }
+        this.cursor.move(0, 1);
         ref1 = this.createRow(-1);
         for (l = 0, len1 = ref1.length; l < len1; l++) {
           b = ref1[l];
@@ -488,21 +560,24 @@
       };
 
       Board.prototype.swap = function() {
-        var b1, b2;
+        var b1, b2, x;
         b1 = this.grid[this.cursor.x][this.cursor.y];
         b2 = this.grid[this.cursor.x + 1][this.cursor.y];
-        this.emit('swap', b1, b2);
-        if (b1 != null) {
-          b1.x = this.cursor.x + 1;
-        }
-        if (b2 != null) {
-          b2.x = this.cursor.x;
-        }
-        return this.update();
+        x = this.cursor.x;
+        return this.queue('swap', [b1, b2], (function(_this) {
+          return function() {
+            if (b1 != null) {
+              b1.x = x + 1;
+            }
+            if (b2 != null) {
+              b2.x = x;
+            }
+            return _this.update();
+          };
+        })(this));
       };
 
       Board.prototype.match = function(blocks) {
-        this.emit('match', blocks);
         b.remove();
         return this.blocks.remove(b);
       };
@@ -589,6 +664,9 @@
         if (!((b1 != null) && (b2 != null))) {
           return false;
         }
+        if ((b1.matched != null) || (b2.matched != null)) {
+          return false;
+        }
         return b1.color === b2.color;
       };
 
@@ -617,15 +695,13 @@
         return matches;
       };
 
-      Board.prototype.clearMatches = function() {
-        var k, len, m, matches;
-        matches = this.getMatches();
+      Board.prototype.clearMatches = function(matches) {
+        var k, len, m;
         for (k = 0, len = matches.length; k < len; k++) {
           m = matches[k];
           this.clearBlocks(m);
         }
-        this.score += matches.length;
-        return matches;
+        return this.score += matches.length;
       };
 
       Board.prototype.clearBlocks = function(blocks) {
@@ -638,13 +714,25 @@
       };
 
       Board.prototype.update = function() {
-        var results;
+        var b, k, l, len, len1, m, matches;
         this.fallDown();
-        results = [];
-        while (this.clearMatches().length) {
-          results.push(this.fallDown());
+        matches = this.getMatches();
+        for (k = 0, len = matches.length; k < len; k++) {
+          m = matches[k];
+          for (l = 0, len1 = m.length; l < len1; l++) {
+            b = m[l];
+            b.matched = true;
+          }
         }
-        return results;
+        if (matches.length > 0) {
+          return this.queue('match', [matches], (function(_this) {
+            return function() {
+              _this.clearMatches(matches);
+              console.log('update');
+              return _this.update();
+            };
+          })(this));
+        }
       };
 
       Board.prototype.fallDown = function() {

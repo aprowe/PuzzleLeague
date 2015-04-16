@@ -4,7 +4,7 @@
 zz.class.ticker = class Ticker extends Base
 
 	## Frames per second
-	framerate: 10
+	framerate: 25
 
 	## Is Ticker paused?
 	running: false
