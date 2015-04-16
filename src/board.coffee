@@ -81,6 +81,8 @@ zz.class.board = class Board extends zz.class.base
 
 		x = @cursor.x
 
+		return unless b1.active and b2.active
+		
 		@queue 'swap', [b1, b2], =>
 			b1.x = x+1 if b1?
 			b2.x = x if b2?
@@ -166,12 +168,11 @@ zz.class.board = class Board extends zz.class.base
 		matches = @getMatches()
 		for m in matches
 			for b in m 
-				b.matched = true
+				b.active = false
 
 		if matches.length > 0 
 			@queue 'match', [matches], =>
 				@clearMatches matches
-				console.log('update')
 				@update()
 
 

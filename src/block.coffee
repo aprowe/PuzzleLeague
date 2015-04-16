@@ -2,7 +2,9 @@
 ## Block class for each block on the grid
 ############################################
 zz.class.block = class Block extends Positional
+
 	constructor: (@x, @y)->
+		@active = true
 		super
 
 ############################################
@@ -25,7 +27,7 @@ class bigBlock extends Block
 
 	constructor: (@x, @y, @w, @h)->
 		super @x, @y
-
+		@active = false
 		@blocks = []
 
 		forall @w, @h, (i,j)->

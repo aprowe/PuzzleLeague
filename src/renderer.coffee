@@ -7,14 +7,18 @@ zz.class.renderer = class Renderer extends zz.class.base
     constructor: (@game)->
         super
 
-    render: ()-> 
-        @renderBoard @board
-        @renderBlock b for b in board.blocks
-        @renderCursor board.cursor
+    render: -> 
+        for board in @game.boards
+            @renderBoard board
+            @renderBlock b, board for b in board.blocks
+            @renderCursor board
+            @renderScore board
+
 
     renderBoard:  (board)->
-    renderBlock:  (block)->
-    renderCursor: (block)->
+    renderBlock:  (block, board)->
+    renderScore:  (board)->
+    renderCursor: (board)->
 
 
 zz.class.domRenderer = class DomRenderer extends zz.class.renderer
@@ -26,7 +30,7 @@ zz.class.domRenderer = class DomRenderer extends zz.class.renderer
     colors: [
         'red', 
         'blue',
-        'green',
+        'green', 
         'yellow',
         'purple',
     ]
@@ -79,8 +83,8 @@ zz.class.domRenderer = class DomRenderer extends zz.class.renderer
         return unless block?
         offset = 0 
         if block.swapping?
-            offset = block.swapping+=10 if block.swapping > 0
-            offset = block.swapping-=10 if block.swapping < 0
+            offset = block.swapping+=25 if block.swapping > 0
+            offset = block.swapping-=25 if block.swapping < 0
 
             if block.swapping <= -@blockSize or block.swapping >= @blockSize
                 @board.done 'swap'
@@ -114,3 +118,7 @@ zz.class.domRenderer = class DomRenderer extends zz.class.renderer
     renderScore: ->
         $ '#score' 
             .html @board.score
+
+
+zz.class.canvasRenderer = class canvasRenderer extends Renderer
+
