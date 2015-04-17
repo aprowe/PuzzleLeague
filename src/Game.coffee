@@ -27,10 +27,10 @@ zz.class.game = class Game extends Base
 		@boards = [
 			new Board,
 		]
-		
-		@renderer = new zz.class.domRenderer(this)
 
-		@controller = new zz.class.domController(@boards[0])
+		@renderer = new CanvasRenderer(this)
+
+		@controller = new zz.class.eventController(@boards[0])
 
 	## Start Ticker and game
 	start: ->

@@ -32,7 +32,7 @@ zz.class.controller = class Controller extends Base
 		@states[@state][key].call(this, args) if @states[@state][key]?
 		zz.game.renderer.render()
 
-zz.class.domController = class DomController extends zz.class.controller
+zz.class.eventController = class EventController extends zz.class.controller
 
 	map:
 		37: 'left'

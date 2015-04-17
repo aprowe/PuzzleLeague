@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Base, Block, Board, ColorBlock, Controller, DomController, DomRenderer, Game, Positional, Renderer, Ticker, bigBlock, forall, zz;
+    var Base, Block, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ColorBlock, Controller, EventController, Game, Positional, Renderer, Ticker, bigBlock, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -62,7 +62,6 @@
       }
 
       Base.prototype.on = function(event, fn) {
-        console.log(this._events);
         if (this._events[event] == null) {
           this._events[event] = [];
         }
@@ -78,7 +77,7 @@
       Base.prototype.emit = function(event, args) {
         var fn, k, len, ref, results;
         if (this['on' + event] != null) {
-          this['on' + event].apply(this, args);
+          this['on' + event].call(this, args);
         }
         if (this._events[event] == null) {
           return;
@@ -87,7 +86,7 @@
         results = [];
         for (k = 0, len = ref.length; k < len; k++) {
           fn = ref[k];
-          results.push(fn.apply(this, args));
+          results.push(fn.call(this, args));
         }
         return results;
       };
@@ -96,13 +95,13 @@
         if (this._queue[event] == null) {
           return;
         }
-        this._queue[event][0].apply(this, this._queue[event][1]);
+        this._queue[event][0].call(this, this._queue[event][1]);
         return delete this._queue[event];
       };
 
       Base.prototype.queue = function(event, args, fn) {
-        this.emit(event, args);
-        return this._queue[event] = [fn, args];
+        this._queue[event] = [fn, args];
+        return this.emit(event, args);
       };
 
       return Base;
@@ -221,8 +220,8 @@
           };
         })(this));
         this.boards = [new Board];
-        this.renderer = new zz["class"].domRenderer(this);
-        this.controller = new zz["class"].domController(this.boards[0]);
+        this.renderer = new CanvasRenderer(this);
+        this.controller = new zz["class"].eventController(this.boards[0]);
       }
 
       Game.prototype.start = function() {
@@ -232,95 +231,73 @@
       return Game;
 
     })(Base);
-    zz["class"].renderer = Renderer = (function(superClass) {
+    Renderer = (function(superClass) {
       extend(Renderer, superClass);
+
+      Renderer.prototype.boardRenderer = function() {};
 
       function Renderer(game) {
         this.game = game;
         Renderer.__super__.constructor.apply(this, arguments);
-      }
-
-      Renderer.prototype.render = function() {
-        var b, k, len, ref;
-        this.renderBoard(this.board);
-        ref = board.blocks;
-        for (k = 0, len = ref.length; k < len; k++) {
-          b = ref[k];
-          this.renderBlock(b);
-        }
-        return this.renderCursor(board.cursor);
-      };
-
-      Renderer.prototype.renderBoard = function(board) {};
-
-      Renderer.prototype.renderBlock = function(block) {};
-
-      Renderer.prototype.renderCursor = function(block) {};
-
-      return Renderer;
-
-    })(zz["class"].base);
-    zz["class"].domRenderer = DomRenderer = (function(superClass) {
-      extend(DomRenderer, superClass);
-
-      DomRenderer.prototype.blockSize = 50;
-
-      DomRenderer.prototype.offset = 0;
-
-      DomRenderer.prototype.colors = ['red', 'blue', 'green', 'yellow', 'purple'];
-
-      function DomRenderer(game) {
-        this.game = game;
-        if (typeof $ === "undefined" || $ === null) {
-          throw 'JQuery Not found';
-        }
-        this.board = this.game.boards[0];
+        this.boards = [];
         $((function(_this) {
           return function() {
-            return _this.setUpElement();
-          };
-        })(this));
-        this.board.on('swap', (function(_this) {
-          return function(b1, b2) {
-            if (b1 != null) {
-              b1.swapping = 1;
-            }
-            if (b2 != null) {
-              return b2.swapping = -1;
-            }
-          };
-        })(this));
-        this.board.on('match', (function(_this) {
-          return function(matches) {
-            var block, k, len, results, sets;
+            var b, k, len, ref, results;
+            ref = _this.game.boards;
             results = [];
-            for (k = 0, len = matches.length; k < len; k++) {
-              sets = matches[k];
-              results.push((function() {
-                var l, len1, results1;
-                results1 = [];
-                for (l = 0, len1 = sets.length; l < len1; l++) {
-                  block = sets[l];
-                  results1.push(block.matched = 0);
-                }
-                return results1;
-              })());
+            for (k = 0, len = ref.length; k < len; k++) {
+              b = ref[k];
+              results.push(_this.boards.push(new _this.boardRenderer(b)));
             }
             return results;
           };
         })(this));
       }
 
-      DomRenderer.prototype.setUpElement = function() {
-        this.element = $('#puzzle');
-        this.element.width(this.board.width * this.blockSize);
-        return this.element.height(this.board.height * this.blockSize);
+      Renderer.prototype.render = function() {
+        var board, k, len, ref, results;
+        ref = this.boards;
+        results = [];
+        for (k = 0, len = ref.length; k < len; k++) {
+          board = ref[k];
+          results.push(board.render());
+        }
+        return results;
       };
 
-      DomRenderer.prototype.render = function() {
+      return Renderer;
+
+    })(Base);
+    BoardRenderer = (function(superClass) {
+      extend(BoardRenderer, superClass);
+
+      function BoardRenderer(board1) {
         var b, k, len, ref;
-        this.offset = 1.0 * this.board.counter / this.board.speed * this.blockSize;
-        this.renderBoard(this.board);
+        this.board = board1;
+        BoardRenderer.__super__.constructor.apply(this, arguments);
+        this.init();
+        this.initBackground();
+        ref = this.board.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          this.initBlock(b);
+        }
+        this.initCursor(this.board.cursor);
+        this.initScore();
+      }
+
+      BoardRenderer.prototype.init = function() {};
+
+      BoardRenderer.prototype.initBackground = function() {};
+
+      BoardRenderer.prototype.initBlock = function(block) {};
+
+      BoardRenderer.prototype.initCursor = function(cursor) {};
+
+      BoardRenderer.prototype.initScore = function() {};
+
+      BoardRenderer.prototype.render = function() {
+        var b, k, len, ref;
         ref = this.board.blocks;
         for (k = 0, len = ref.length; k < len; k++) {
           b = ref[k];
@@ -330,75 +307,248 @@
         return this.renderScore();
       };
 
-      DomRenderer.prototype.renderBoard = function(board) {
-        return this.element.find('.block').remove();
+      BoardRenderer.prototype.renderBackground = function() {};
+
+      BoardRenderer.prototype.renderBlock = function(block) {};
+
+      BoardRenderer.prototype.renderCursor = function(cursor) {};
+
+      BoardRenderer.prototype.renderScore = function() {};
+
+      BoardRenderer.prototype.size = 50;
+
+      BoardRenderer.prototype.offset = function() {
+        return this.board.counter / this.board.speed * this.size;
       };
 
-      DomRenderer.prototype.renderCursor = function(cursor) {
-        var el;
-        this.element.find('.cursor').remove();
-        el = $('<div></div>', {
-          "class": 'cursor'
-        }).appendTo(this.element);
-        el.width(this.blockSize * 2);
-        el.height(this.blockSize * 1);
-        return el.css({
-          bottom: cursor.y * this.blockSize + this.offset,
-          left: cursor.x * this.blockSize
+      BoardRenderer.prototype.toPos = function(pos) {
+        return {
+          x: pos.x * this.size,
+          y: (this.board.height - pos.y - 1) * this.size
+        };
+      };
+
+      return BoardRenderer;
+
+    })(Base);
+    CanvasBoardRenderer = (function(superClass) {
+      extend(CanvasBoardRenderer, superClass);
+
+      function CanvasBoardRenderer() {
+        return CanvasBoardRenderer.__super__.constructor.apply(this, arguments);
+      }
+
+      CanvasBoardRenderer.prototype.colors = ['red', 'blue', 'green', 'purple', 'orange'];
+
+      CanvasBoardRenderer.prototype.init = function() {
+        $('#puzzle').attr({
+          width: this.board.width * this.size,
+          height: this.board.height * this.size
         });
+        this.stage = new createjs.Stage('puzzle');
+        this.board.on('swap', (function(_this) {
+          return function(blocks) {
+            return _this.swapAnimation(blocks);
+          };
+        })(this));
+        this.board.on('match', (function(_this) {
+          return function(matches) {
+            return _this.matchAnimation(matches);
+          };
+        })(this));
+        this.board.on('remove', (function(_this) {
+          return function(block) {
+            return _this.stage.removeChild(block.s);
+          };
+        })(this));
+        return this.board.on('add', (function(_this) {
+          return function(block) {
+            return _this.initBlock(block);
+          };
+        })(this));
       };
 
-      DomRenderer.prototype.renderBlock = function(block) {
-        var el, offset;
-        if (block == null) {
+      CanvasBoardRenderer.prototype.initBackground = function() {
+        this.background = new createjs.Shape();
+        this.background.graphics.beginFill('black').drawRect(0, 0, this.size * this.board.width, this.size * this.board.height);
+        return this.stage.addChild(this.background);
+      };
+
+      CanvasBoardRenderer.prototype.initBlock = function(block) {
+        var color;
+        block.s = new createjs.Shape();
+        this.release(block);
+        color = this.colors[block.color];
+        block.s.graphics.beginFill(color).drawRect(0, 0, this.size, this.size);
+        return this.stage.addChild(block.s);
+      };
+
+      CanvasBoardRenderer.prototype.initCursor = function(cursor) {
+        cursor.s = new createjs.Shape();
+        cursor.s.graphics.beginStroke('white').drawRect(0, 0, this.size * 2, this.size);
+        return this.stage.addChild(cursor.s);
+      };
+
+      CanvasBoardRenderer.prototype.render = function() {
+        CanvasBoardRenderer.__super__.render.apply(this, arguments);
+        return this.stage.update();
+      };
+
+      CanvasBoardRenderer.prototype.renderCursor = function(cursor) {
+        var pos;
+        pos = this.toPos(cursor);
+        cursor.s.x = pos.x;
+        return cursor.s.y = pos.y - this.offset();
+      };
+
+      CanvasBoardRenderer.prototype.renderBlock = function(b) {
+        var pos;
+        if (b.s == null) {
+          this.initBlock(b);
+        }
+        if (!((b._stop != null) && !b._stop)) {
           return;
         }
-        offset = 0;
-        if (block.swapping != null) {
-          if (block.swapping > 0) {
-            offset = block.swapping += 10;
-          }
-          if (block.swapping < 0) {
-            offset = block.swapping -= 10;
-          }
-          if (block.swapping <= -this.blockSize || block.swapping >= this.blockSize) {
-            this.board.done('swap');
-            delete block.swapping;
-            offset = 0;
-          }
-        }
-        el = $('<div></div>', {
-          "class": 'block'
-        }).appendTo(this.element);
-        if (block.matched != null) {
-          el.addClass('matched');
-          block.matched++;
-          if (block.matched > 10) {
-            delete block.matched;
-            this.board.done('match');
-          }
-        }
-        el.width(this.blockSize);
-        el.height(this.blockSize);
-        if (block.y < 0) {
-          el.css({
-            opacity: 0.5
-          });
-        }
-        return el.css({
-          bottom: block.y * this.blockSize + this.offset,
-          left: block.x * this.blockSize + offset,
-          background: this.colors[block.color]
-        });
+        pos = this.toPos(b);
+        b.s.x = pos.x;
+        return b.s.y = pos.y - this.offset();
       };
 
-      DomRenderer.prototype.renderScore = function() {
-        return $('#score').html(this.board.score);
+      CanvasBoardRenderer.prototype.swapAnimation = function(blocks) {
+        var b1, b2, ease, length, t1, t2;
+        length = 100;
+        b1 = blocks[0];
+        b2 = blocks[1];
+        this.hold(b1, b2);
+        ease = createjs.Ease.linear;
+        if (((b1 != null) && (b2 == null)) || ((b2 != null) && (b1 == null))) {
+          console.log('ok');
+          length += 100;
+          ease = createjs.Ease.quadOut;
+        }
+        if (b1 != null) {
+          t1 = createjs.Tween.get(b1.s).to({
+            x: b1.s.x + this.size
+          }, length, ease);
+        }
+        if (b2 != null) {
+          t2 = createjs.Tween.get(b2.s).to({
+            x: b2.s.x - this.size
+          }, length, ease);
+        }
+        return (new createjs.Tween).wait(length).call((function(_this) {
+          return function() {
+            _this.release(b1, b2);
+            return _this.board.done('swap');
+          };
+        })(this));
       };
 
-      return DomRenderer;
+      CanvasBoardRenderer.prototype.matchAnimation = function(matches) {
+        var block, each, k, l, len, len1, length, set;
+        length = 200;
+        each = (function(_this) {
+          return function(b) {
+            return createjs.Tween.get(b.s).to({
+              alpha: 0
+            }, length).play();
+          };
+        })(this);
+        for (k = 0, len = matches.length; k < len; k++) {
+          set = matches[k];
+          this.hold(set);
+          for (l = 0, len1 = set.length; l < len1; l++) {
+            block = set[l];
+            each(block);
+          }
+        }
+        return setTimeout((function(_this) {
+          return function() {
+            var len2, n;
+            for (n = 0, len2 = matches.length; n < len2; n++) {
+              set = matches[n];
+              _this.release(set);
+            }
+            return _this.board.done('match');
+          };
+        })(this), length);
+      };
 
-    })(zz["class"].renderer);
+      CanvasBoardRenderer.prototype.hold = function(obj) {
+        var o;
+        if (arguments.length > (1 != null)) {
+          return (function() {
+            var k, len, results;
+            results = [];
+            for (k = 0, len = arguments.length; k < len; k++) {
+              o = arguments[k];
+              results.push(this.hold(o));
+            }
+            return results;
+          }).apply(this, arguments);
+        }
+        if (obj == null) {
+          return;
+        }
+        if ((obj.length != null) && obj.length > (1 != null)) {
+          return (function() {
+            var k, len, results;
+            results = [];
+            for (k = 0, len = obj.length; k < len; k++) {
+              o = obj[k];
+              results.push(this.hold(o));
+            }
+            return results;
+          }).call(this);
+        }
+        return obj._stop = true;
+      };
+
+      CanvasBoardRenderer.prototype.release = function(obj) {
+        var o;
+        if (arguments.length > (1 != null)) {
+          return (function() {
+            var k, len, results;
+            results = [];
+            for (k = 0, len = arguments.length; k < len; k++) {
+              o = arguments[k];
+              results.push(this.release(o));
+            }
+            return results;
+          }).apply(this, arguments);
+        }
+        if (obj == null) {
+          return;
+        }
+        if ((obj.length != null) && obj.length > (1 != null)) {
+          return (function() {
+            var k, len, results;
+            results = [];
+            for (k = 0, len = obj.length; k < len; k++) {
+              o = obj[k];
+              results.push(this.release(o));
+            }
+            return results;
+          }).call(this);
+        }
+        return obj._stop = false;
+      };
+
+      return CanvasBoardRenderer;
+
+    })(BoardRenderer);
+    CanvasRenderer = (function(superClass) {
+      extend(CanvasRenderer, superClass);
+
+      function CanvasRenderer() {
+        return CanvasRenderer.__super__.constructor.apply(this, arguments);
+      }
+
+      CanvasRenderer.prototype.boardRenderer = CanvasBoardRenderer;
+
+      return CanvasRenderer;
+
+    })(Renderer);
     zz["class"].controller = Controller = (function(superClass) {
       extend(Controller, superClass);
 
@@ -444,10 +594,10 @@
       return Controller;
 
     })(Base);
-    zz["class"].domController = DomController = (function(superClass) {
-      extend(DomController, superClass);
+    zz["class"].eventController = EventController = (function(superClass) {
+      extend(EventController, superClass);
 
-      DomController.prototype.map = {
+      EventController.prototype.map = {
         37: 'left',
         38: 'up',
         39: 'right',
@@ -455,9 +605,9 @@
         32: 'swap'
       };
 
-      function DomController(board1) {
+      function EventController(board1) {
         this.board = board1;
-        DomController.__super__.constructor.call(this, this.board);
+        EventController.__super__.constructor.call(this, this.board);
         $((function(_this) {
           return function() {
             return $('body').keydown(function(e) {
@@ -472,7 +622,7 @@
         })(this));
       }
 
-      return DomController;
+      return EventController;
 
     })(zz["class"].controller);
     zz["class"].board = Board = (function(superClass) {
@@ -481,10 +631,9 @@
       Board.prototype.defaults = {
         width: 8,
         height: 10,
-        speed: 100,
+        speed: 200,
         counter: 0,
         cursor: {},
-        renderer: null,
         score: 0,
         blocks: []
       };
@@ -513,11 +662,11 @@
             _this.counter++;
             if (_this.counter > _this.speed) {
               _this.counter = 0;
-              return _this.pushRow();
+              _this.pushRow();
             }
+            return _this.update();
           };
         })(this));
-        this.update();
       }
 
       Board.prototype.createRow = function(y) {
@@ -570,16 +719,10 @@
               b1.x = x + 1;
             }
             if (b2 != null) {
-              b2.x = x;
+              return b2.x = x;
             }
-            return _this.update();
           };
         })(this));
-      };
-
-      Board.prototype.match = function(blocks) {
-        b.remove();
-        return this.blocks.remove(b);
       };
 
       Board.prototype.getColumn = function(col) {
@@ -671,7 +814,7 @@
       };
 
       Board.prototype.getMatches = function() {
-        var a, col, firstRow, k, l, len, len1, len2, len3, matches, n, o, ref, ref1, ref2, ref3, row;
+        var a, col, firstRow, k, l, len, len1, len2, len3, matches, n, p, ref, ref1, ref2, ref3, row;
         matches = [];
         firstRow = false;
         ref = this.getRows();
@@ -687,8 +830,8 @@
         for (n = 0, len2 = ref2.length; n < len2; n++) {
           col = ref2[n];
           ref3 = this.checkRow(col);
-          for (o = 0, len3 = ref3.length; o < len3; o++) {
-            a = ref3[o];
+          for (p = 0, len3 = ref3.length; p < len3; p++) {
+            a = ref3[p];
             matches.push(a);
           }
         }
@@ -704,35 +847,40 @@
         return this.score += matches.length;
       };
 
+      Board.prototype.addBlocks = function(blocks) {
+        var b, k, len;
+        for (k = 0, len = blocks.length; k < len; k++) {
+          b = blocks[k];
+          this.emit('add', b);
+          this.blocks.push(b);
+        }
+        return this._blockArray = null;
+      };
+
       Board.prototype.clearBlocks = function(blocks) {
         var b, k, len;
         for (k = 0, len = blocks.length; k < len; k++) {
           b = blocks[k];
+          this.emit('remove', b);
           this.blocks.remove(b);
         }
         return this._blockArray = null;
       };
 
       Board.prototype.update = function() {
-        var b, k, l, len, len1, m, matches;
+        var matches;
         this.fallDown();
+        zz.game.renderer.render();
         matches = this.getMatches();
-        for (k = 0, len = matches.length; k < len; k++) {
-          m = matches[k];
-          for (l = 0, len1 = m.length; l < len1; l++) {
-            b = m[l];
-            b.matched = true;
-          }
+        if (!(matches.length > 0)) {
+          return;
         }
-        if (matches.length > 0) {
-          return this.queue('match', [matches], (function(_this) {
-            return function() {
-              _this.clearMatches(matches);
-              console.log('update');
-              return _this.update();
-            };
-          })(this));
-        }
+        return this.queue('match', matches, (function(_this) {
+          return function() {
+            _this.clearMatches(matches);
+            return _this.update();
+          };
+        })(this));
       };
 
       Board.prototype.fallDown = function() {
@@ -798,6 +946,7 @@
       function Block(x1, y3) {
         this.x = x1;
         this.y = y3;
+        this.active = true;
         Block.__super__.constructor.apply(this, arguments);
       }
 
@@ -809,10 +958,10 @@
 
       ColorBlock.prototype.colors = 5;
 
-      function ColorBlock(x1, y3, color) {
+      function ColorBlock(x1, y3, color1) {
         this.x = x1;
         this.y = y3;
-        this.color = color;
+        this.color = color1;
         ColorBlock.__super__.constructor.call(this, this.x, this.y);
         if (this.color == null) {
           this.color = Math.round(Math.random() * this.colors) % this.colors;
@@ -831,6 +980,7 @@
         this.w = w1;
         this.h = h1;
         bigBlock.__super__.constructor.call(this, this.x, this.y);
+        this.active = false;
         this.blocks = [];
         forall(this.w, this.h, function(i, j) {
           return this.blocks.push(new Block(this.x + i, this.y + j));

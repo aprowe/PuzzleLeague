@@ -70,7 +70,6 @@ root = if window? then window else this
     			this[key] = value
 
     	on: (event, fn)->
-    		console.log(@_events)
     		unless @_events[event]?
     			@_events[event] = []
 
@@ -83,18 +82,19 @@ root = if window? then window else this
 
     	emit: (event, args)->
     		## Call the function on<event>
-    		this['on'+event].apply(this, args) if this['on'+event]?
+    		this['on'+event].call(this, args) if this['on'+event]?
     		return unless @_events[event]?
-    		fn.apply(this, args) for fn in @_events[event]
+    		fn.call(this, args) for fn in @_events[event]
 
     	done: (event)->
     		return unless @_queue[event]?
-    		@_queue[event][0].apply(this, @_queue[event][1])
+    		@_queue[event][0].call(this, @_queue[event][1])
     		delete @_queue[event]
 
     	queue: (event, args, fn)->
-    		@emit event, args
     		@_queue[event] = [fn, args]
+    		@emit event, args
+
 
     ###########################
     ## Positional Class
@@ -196,10 +196,10 @@ root = if window? then window else this
     		@boards = [
     			new Board,
     		]
-    		
-    		@renderer = new zz.class.domRenderer(this)
 
-    		@controller = new zz.class.domController(@boards[0])
+    		@renderer = new CanvasRenderer(this)
+
+    		@controller = new zz.class.eventController(@boards[0])
 
     	## Start Ticker and game
     	start: ->
@@ -210,118 +210,299 @@ root = if window? then window else this
     ## Rendering Class
     ################################
 
-    zz.class.renderer = class Renderer extends zz.class.base
+    class Renderer extends Base
+
+        boardRenderer: ->
 
         constructor: (@game)->
             super
 
-        render: ()-> 
-            @renderBoard @board
-            @renderBlock b for b in board.blocks
-            @renderCursor board.cursor
+            @boards = []
+            $ =>    
+                for b in @game.boards
+                    @boards.push(new @boardRenderer b)
 
-        renderBoard:  (board)->
-        renderBlock:  (block)->
-        renderCursor: (block)->
+        render: -> 
+            board.render() for board in @boards
 
-
-    zz.class.domRenderer = class DomRenderer extends zz.class.renderer
-
-        blockSize: 50
-
-        offset: 0
-
-        colors: [
-            'red', 
-            'blue',
-            'green',
-            'yellow',
-            'purple',
-        ]
+    class BoardRenderer extends Base
 
 
-        constructor: (@game)->
-            throw 'JQuery Not found' unless $?
+        constructor: (@board)->
+            super
+            @init()
+            @initBackground()
+            @initBlock b for b in @board.blocks
+            @initCursor @board.cursor
+            @initScore()
 
-            @board = @game.boards[0]
-            $ => @setUpElement()
 
-            @board.on 'swap', (b1, b2)=>
-                b1.swapping =  1 if b1?
-                b2.swapping = -1 if b2?
+        init: ()->
+        initBackground: ()->
+        initBlock: (block)->
+        initCursor: (cursor)->
+        initScore: ()->
 
-            @board.on 'match', (matches)=>
-                for sets in matches
-                    for block in sets
-                        block.matched = 0
 
-        setUpElement: ()->
-            @element = $ '#puzzle'
-            @element.width  @board.width  * @blockSize
-            @element.height @board.height * @blockSize
-
-        render: ()-> 
-            @offset = 1.0*@board.counter/@board.speed * @blockSize
-
-            @renderBoard @board
+        render: ()->
             @renderBlock b for b in @board.blocks
             @renderCursor @board.cursor
             @renderScore()
 
-        renderBoard: (board)->
-            @element.find('.block').remove()
+        renderBackground: ->
+        renderBlock:  (block)->
+        renderCursor: (cursor)->
+        renderScore:  ()->
 
-        renderCursor: (cursor) ->
-            @element.find('.cursor').remove()
-            el = $ '<div></div>', class: 'cursor'
-                .appendTo @element
+        size: 50 
 
-            el.width @blockSize * 2
-            el.height @blockSize * 1
+        offset: ()-> @board.counter / @board.speed * @size
 
-            el.css
-                bottom: cursor.y * @blockSize + @offset
-                left: cursor.x * @blockSize
-
-        renderBlock: (block)->
-            return unless block?
-            offset = 0 
-            if block.swapping?
-                offset = block.swapping+=10 if block.swapping > 0
-                offset = block.swapping-=10 if block.swapping < 0
-
-                if block.swapping <= -@blockSize or block.swapping >= @blockSize
-                    @board.done 'swap'
-                    delete block.swapping
-                    offset = 0
-
-            el = $ '<div></div>', 
-                class: 'block'
-            .appendTo @element
-
-            if block.matched?
-                el.addClass('matched')
-                block.matched++
-
-                if block.matched > 10
-                    delete block.matched
-                    @board.done 'match'
-
-            el.width @blockSize
-            el.height @blockSize
-
-            if block.y < 0 
-                el.css opacity: 0.5
-
-            el.css 
-                bottom: block.y * @blockSize + @offset
-                left:   block.x * @blockSize + offset
-                background: @colors[block.color]
+        toPos: (pos)->
+            x: pos.x * @size
+            y: (@board.height - pos.y - 1) * @size
 
 
-        renderScore: ->
-            $ '#score' 
-                .html @board.score
+
+    # class DomRenderer extends zz.class.renderer
+
+    #     blockSize: 50
+
+    #     offset: 0
+
+    #     colors: [
+    #         'red', 
+    #         'blue',
+    #         'green', 
+    #         'yellow',
+    #         'purple',
+    #     ]
+
+
+    #     constructor: (@game)->
+    #         throw 'JQuery Not found' unless $?
+
+    #         @board = @game.boards[0]
+    #         $ => @setUpElement()
+
+    #         @board.on 'swap', (b1, b2)=>
+    #             b1.swapping =  1 if b1?
+    #             b2.swapping = -1 if b2?
+
+    #         @board.on 'match', (matches)=>
+    #             for sets in matches
+    #                 for block in sets
+    #                     block.matched = 0
+
+    #     setUpElement: ()->
+    #         @element = $ '#puzzle'
+    #         @element.width  @board.width  * @blockSize
+    #         @element.height @board.height * @blockSize
+
+    #     render: ()-> 
+    #         @offset = 1.0*@board.counter/@board.speed * @blockSize
+
+    #         @renderBoard @board
+    #         @renderBlock b for b in @board.blocks
+    #         @renderCursor @board.cursor
+    #         @renderScore()
+
+    #     renderBoard: (board)->
+    #         @element.find('.block').remove()
+
+    #     renderCursor: (cursor) ->
+    #         @element.find('.cursor').remove()
+    #         el = $ '<div></div>', class: 'cursor'
+    #             .appendTo @element
+
+    #         el.width @blockSize * 2
+    #         el.height @blockSize * 1
+
+    #         el.css
+    #             bottom: cursor.y * @blockSize + @offset
+    #             left: cursor.x * @blockSize
+
+    #     renderBlock: (block)->
+    #         return unless block?
+    #         offset = 0 
+    #         if block.swapping?
+    #             offset = block.swapping+=25 if block.swapping > 0
+    #             offset = block.swapping-=25 if block.swapping < 0
+
+    #             if block.swapping <= -@blockSize or block.swapping >= @blockSize
+    #                 @board.done 'swap'
+    #                 delete block.swapping
+    #                 offset = 0
+
+    #         el = $ '<div></div>', 
+    #             class: 'block'
+    #         .appendTo @element
+
+    #         if block.matched?
+    #             el.addClass('matched')
+    #             block.matched++
+
+    #             if block.matched > 10
+    #                 delete block.matched
+    #                 @board.done 'match'
+
+    #         el.width @blockSize
+    #         el.height @blockSize
+
+    #         if block.y < 0 
+    #             el.css opacity: 0.5
+
+    #         el.css 
+    #             bottom: block.y * @blockSize + @offset
+    #             left:   block.x * @blockSize + offset
+    #             background: @colors[block.color]
+
+
+    #     renderScore: ->
+    #         $ '#score' 
+    #             .html @board.score
+
+
+
+
+
+    class CanvasBoardRenderer extends BoardRenderer
+
+        colors: [
+            'red', 
+            'blue',
+            'green', 
+            'purple',
+            'orange',
+        ]
+
+        init: ()->
+            $('#puzzle').attr width: @board.width * @size , height: @board.height * @size
+            
+            @stage = new createjs.Stage('puzzle')
+
+            @board.on 'swap', (blocks)=>
+                @swapAnimation(blocks)
+
+            @board.on 'match', (matches)=>
+                @matchAnimation matches
+
+
+            @board.on 'remove', (block)=>
+                @stage.removeChild block.s 
+
+            @board.on 'add', (block)=>
+                @initBlock block
+
+        initBackground: ()->
+            @background = new createjs.Shape()
+            @background.graphics
+                .beginFill 'black'
+                .drawRect 0, 0, @size * @board.width, @size * @board.height
+
+            @stage.addChild @background
+
+        initBlock: (block)->
+            block.s = new createjs.Shape()
+
+            @release(block)
+
+            color = @colors[block.color]
+
+            block.s.graphics
+                .beginFill color
+                .drawRect 0, 0, @size, @size
+            
+            @stage.addChild block.s
+
+
+        initCursor: (cursor)->
+            cursor.s = new createjs.Shape()
+
+            cursor.s.graphics
+                .beginStroke 'white'
+                .drawRect 0, 0, @size*2, @size
+
+            @stage.addChild cursor.s
+
+        render: ()->
+            super
+            @stage.update()
+
+        renderCursor: (cursor)->
+            pos = @toPos cursor
+            cursor.s.x = pos.x
+            cursor.s.y = pos.y - @offset()
+
+        renderBlock: (b)->
+            @initBlock b unless b.s?
+
+            return unless b._stop? and not b._stop
+
+            pos = @toPos b
+            b.s.x = pos.x
+            b.s.y = pos.y - @offset()
+
+        swapAnimation: (blocks)->
+            length = 100
+
+            b1 = blocks[0]
+            b2 = blocks[1]
+            @hold b1,b2
+
+            ease = createjs.Ease.linear
+
+            if (b1? and not b2?) or (b2? and not b1?)
+                console.log 'ok'
+                length += 100
+                ease = createjs.Ease.quadOut
+
+
+            t1 = createjs.Tween.get(b1.s).to(x: b1.s.x+@size, length, ease) if b1?
+            t2 = createjs.Tween.get(b2.s).to(x: b2.s.x-@size, length, ease) if b2?   
+
+            (new createjs.Tween).wait(length).call =>
+                @release b1, b2
+                @board.done 'swap'
+
+        matchAnimation: (matches)->
+            length = 200
+
+            each = (b)=>
+                createjs.Tween.get(b.s).to(alpha: 0, length).play()
+
+            for set in matches
+                @hold set
+                for block in set
+                    each(block)
+
+            setTimeout =>
+                @release set for set in matches
+                @board.done 'match'
+            , length
+
+
+
+        hold: (obj)-> 
+            return (@hold o for o in arguments) if arguments.length > 1?
+            return unless obj?
+            return (@hold o for o in obj) if obj.length? and obj.length > 1?
+            obj._stop = true
+
+        release: (obj)-> 
+            return (@release o for o in arguments) if arguments.length > 1?
+            return unless obj?
+            return (@release o for o in obj) if obj.length? and obj.length > 1?
+            obj._stop = false
+
+
+
+
+
+            
+    class CanvasRenderer extends Renderer
+
+        boardRenderer: CanvasBoardRenderer
 
 
     #########################
@@ -357,7 +538,7 @@ root = if window? then window else this
     		@states[@state][key].call(this, args) if @states[@state][key]?
     		zz.game.renderer.render()
 
-    zz.class.domController = class DomController extends zz.class.controller
+    zz.class.eventController = class EventController extends zz.class.controller
 
     	map:
     		37: 'left'
@@ -385,220 +566,224 @@ root = if window? then window else this
     ############################################
     zz.class.board = class Board extends zz.class.base
 
-    	defaults: 
-    		## Width of board
-    		width: 8
+        defaults: 
+            ## Width of board
+            width: 8
 
-    		## Height of board
-    		height: 10
+            ## Height of board
+            height: 10
 
-    		## Speed of the rows raising (frames per row)
-    		speed: 100
+            ## Speed of the rows raising (frames per row)
+            speed: 200
 
-    		## Counter to keep track of the rows rising
-    		counter: 0
+            ## Counter to keep track of the rows rising
+            counter: 0
 
-    		## Player Cursor
-    		cursor: {}
+            ## Player Cursor
+            cursor: {}
 
-    		## Rendering class
-    		renderer: null
+            score: 0
 
-    		score: 0
-
-    		blocks: []
+            blocks: []
 
 
-    	constructor: ()->
-    		super
+        constructor: ()->
+            super
 
-    		## Set up easy grid getter
-    		Object.defineProperty this, 'grid', get: => @blockArray()
+            ## Set up easy grid getter
+            Object.defineProperty this, 'grid', get: => @blockArray()
 
-    		## Populate block
-    		for y in [-1..4]	
-    			@blocks.push b for b in @createRow y
+            ## Populate block
+            for y in [-1..4]    
+                @blocks.push b for b in @createRow y
 
-    		## Set Up Cursor
-    		@cursor = new zz.class.positional
-    		@cursor.limit [0, @width-2, 0, @height-2]
-
-
-    		## start game ticker
-    		zz.game.ticker.on 'tick', =>
-    			@counter++
-
-    			if @counter > @speed
-    				@counter = 0
-    				@pushRow() 
-
-    		@update()
-
-    	createRow: (y)-> 
-    		(new ColorBlock(x, y) for x in [0..@width-1])
+            ## Set Up Cursor
+            @cursor = new zz.class.positional
+            @cursor.limit [0, @width-2, 0, @height-2]
 
 
-    	pushRow: ()->
-    		b.y++ for b in @blocks
-    		@cursor.move 0, 1
+            ## start game ticker
+            zz.game.ticker.on 'tick', =>
+                @counter++
 
-    		@blocks.push b for b in @createRow -1
+                if @counter > @speed
+                    @counter = 0
+                    @pushRow() 
 
-    		@update()
+                @update()
 
-    	blockArray: ->
-    		# return @_blockArray if @_blockArray?
-
-    		@_blockArray = []
-    		@_blockArray.fill @width, @height
-
-    		for b in @blocks
-    			@_blockArray[b.x][b.y] = b if b.y >= 0
-
-    		return @_blockArray
-
-    	swap: ()->
-    		b1 = @grid[@cursor.x][@cursor.y]
-    		b2 = @grid[@cursor.x+1][@cursor.y]
-
-    		x = @cursor.x
-
-    		@queue 'swap', [b1, b2], =>
-    			b1.x = x+1 if b1?
-    			b2.x = x if b2?
-    			@update()
-
-    	match: (blocks)->
-    		b.remove()
-    		@blocks.remove b
-
-    	#########################
-    	## Retreival functions
-    	#########################
-    	getColumn: (col)->
-    		col = col.x if col.x?
-
-    		return @grid[col]
-
-    	getRow: (row)->
-    		row = row.y if row.y?
-
-    		return (@grid[i][row] for i in [0..@width-1])
-
-    	getRows: ()->
-    		@getRow i for i in [0..@height-1]
-
-    	getColumns: ()-> @grid
-
-    	getAdjacent: (block)->
-    		blocks = []
-    		blocks.push @grid[block.x][block.y+1]
-    		blocks.push @grid[block.x][block.y-1]
-
-    		blocks.push @grid[block.x-1][block.y] if @grid[block.x-1]?
-    		blocks.push @grid[block.x+1][block.y] if @grid[block.x+1]?
-
-    		return (b for b in blocks when b?)
-
-    	#########################
-    	## Match Functions
-    	#########################
-    	checkRow: (row)->
-    		sets = []
-
-    		b = 0
-    		while b < row.length-1
-    			match = []
-
-    			while true
-    				match.push row[b]
-    				break unless @checkBlocks row[b], row[++b]
-
-    			sets.push match if match.length >= 3
-
-    		return sets
-
-    	checkBlocks: (b1, b2)->
-    		return false unless b1? and b2?
-    		return false if b1.matched? or b2.matched?
-    		b1.color == b2.color
-
-    	getMatches: ->
-    		matches = []
-    		firstRow = false
-    		for row in @getRows()
-    			matches.push a for a in @checkRow(row)
-
-    		for col in @getColumns()
-    			matches.push a for a in @checkRow(col)
-
-    		return matches
-
-    	clearMatches: (matches)->
-    		@clearBlocks m for m in matches
-    		@score += matches.length
-
-    	clearBlocks: (blocks)->
-    		@blocks.remove(b) for b in blocks
-    		@_blockArray = null
-
-    	update: ()->
-    		@fallDown() 
-
-    		matches = @getMatches()
-    		for m in matches
-    			for b in m 
-    				b.matched = true
-
-    		if matches.length > 0 
-    			@queue 'match', [matches], =>
-    				@clearMatches matches
-    				console.log('update')
-    				@update()
+        createRow: (y)-> 
+            (new ColorBlock(x, y) for x in [0..@width-1])
 
 
-    	#########################
-    	## Positional Functions
-    	#########################
-    	fallDown: ->
-    		for col in @getColumns()
-    			col = col.sort (b1,b2)->
-    				y1 = if b1? then b1.y else 1000
-    				y2 = if b2? then b2.y else 1000
-    				y1 - y2
+        pushRow: ()->
+            b.y++ for b in @blocks
+            @cursor.move 0, 1
+
+            @blocks.push b for b in @createRow -1
+
+            @update()
+
+        blockArray: ->
+            # return @_blockArray if @_blockArray?
+
+            @_blockArray = []
+            @_blockArray.fill @width, @height
+
+            for b in @blocks
+                @_blockArray[b.x][b.y] = b if b.y >= 0
+
+            return @_blockArray
+
+        swap: ()->
+            b1 = @grid[@cursor.x][@cursor.y]
+            b2 = @grid[@cursor.x+1][@cursor.y]
+
+            x = @cursor.x
+            
+            @queue 'swap', [b1,b2], =>
+                b1.x = x+1 if b1?
+                b2.x = x if b2?
 
 
-    			for i in [0..col.length-1]
-    				col[i].y = i if col[i]?
 
-    	render: ->
-    		str = ""
+        #########################
+        ## Retreival functions
+        #########################
+        getColumn: (col)->
+            col = col.x if col.x?
 
-    		for row in [@height-1..0]
-    			str += "\n"
-    			for col in [0..@width-1]
-    				if row is @cursor.y and col is @cursor.x
-    					str +='['
-    				else
-    					str+= ' '
+            return @grid[col]
 
-    				if @grid[col]? and @grid[col][row]?
-    					str += @grid[col][row].color
-    				else
-    					str += '-'
+        getRow: (row)->
+            row = row.y if row.y?
 
-    				if row is @cursor.y and col is @cursor.x+1
-    					str +=']'
-    				else
-    					str+= ' '
+            return (@grid[i][row] for i in [0..@width-1])
 
-    		return str
+        getRows: ()->
+            @getRow i for i in [0..@height-1]
+
+        getColumns: ()-> @grid
+
+        getAdjacent: (block)->
+            blocks = []
+            blocks.push @grid[block.x][block.y+1]
+            blocks.push @grid[block.x][block.y-1]
+
+            blocks.push @grid[block.x-1][block.y] if @grid[block.x-1]?
+            blocks.push @grid[block.x+1][block.y] if @grid[block.x+1]?
+
+            return (b for b in blocks when b?)
+
+        #########################
+        ## Match Functions
+        #########################
+        checkRow: (row)->
+            sets = []
+
+            b = 0
+            while b < row.length-1
+                match = []
+
+                while true
+                    match.push row[b]
+                    break unless @checkBlocks row[b], row[++b]
+
+                sets.push match if match.length >= 3
+
+            return sets
+
+        checkBlocks: (b1, b2)->
+            return false unless b1? and b2?
+            return false if b1.matched? or b2.matched?
+            b1.color == b2.color
+
+        getMatches: ->
+            matches = []
+            firstRow = false
+            for row in @getRows()
+                matches.push a for a in @checkRow(row)
+
+            for col in @getColumns()
+                matches.push a for a in @checkRow(col)
+
+            return matches
+
+        clearMatches: (matches)->
+            @clearBlocks m for m in matches
+            @score += matches.length
+
+        addBlocks: (blocks)->
+            for b in blocks
+                @emit 'add', b
+                @blocks.push b
+
+            @_blockArray = null
+
+        clearBlocks: (blocks)->
+            for b in blocks
+                @emit 'remove', b
+                @blocks.remove(b)
+
+            @_blockArray = null
+
+        update: ()->
+            @fallDown() 
+            zz.game.renderer.render()
+
+            matches = @getMatches()
+
+            return unless matches.length > 0 
+
+            @queue 'match', matches, =>
+                @clearMatches matches
+                @update()
+
+
+        #########################
+        ## Positional Functions
+        #########################
+        fallDown: ->
+            for col in @getColumns()
+                col = col.sort (b1,b2)->
+                    y1 = if b1? then b1.y else 1000
+                    y2 = if b2? then b2.y else 1000
+                    y1 - y2
+
+
+                for i in [0..col.length-1]
+                    col[i].y = i if col[i]?
+
+        render: ->
+            str = ""
+
+            for row in [@height-1..0]
+                str += "\n"
+                for col in [0..@width-1]
+                    if row is @cursor.y and col is @cursor.x
+                        str +='['
+                    else
+                        str+= ' '
+
+                    if @grid[col]? and @grid[col][row]?
+                        str += @grid[col][row].color
+                    else
+                        str += '-'
+
+                    if row is @cursor.y and col is @cursor.x+1
+                        str +=']'
+                    else
+                        str+= ' '
+
+            return str
 
     ############################################
     ## Block class for each block on the grid
     ############################################
     zz.class.block = class Block extends Positional
+
     	constructor: (@x, @y)->
+    		@active = true
     		super
 
     ############################################
@@ -621,7 +806,7 @@ root = if window? then window else this
 
     	constructor: (@x, @y, @w, @h)->
     		super @x, @y
-
+    		@active = false
     		@blocks = []
 
     		forall @w, @h, (i,j)->
