@@ -4,7 +4,7 @@
 
 ## Function to remove an item from an array
 Array.prototype.remove = (item)->
-    if this.indexOf(item) > 0
+    if this.indexOf(item) > -1
         this.splice this.indexOf(item), 1
     return item
 

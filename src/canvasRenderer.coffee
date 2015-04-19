@@ -2,11 +2,12 @@
 class CanvasBoardRenderer extends BoardRenderer
 
     colors: [
-        'red', 
+        'grey', 
         'blue',
         'green', 
-        'purple',
+        'yellow',
         'orange',
+        'red',
     ]
 
     init: ()->
@@ -14,18 +15,19 @@ class CanvasBoardRenderer extends BoardRenderer
         
         @stage = new createjs.Stage('puzzle')
 
+        ## Set up animations
+        # @animation 'swap', @swapAnimation, 100
         @board.on 'swap', (blocks)=>
-            @swapAnimation(blocks)
+            @swapAnimation blocks
 
         @board.on 'match', (matches)=>
             @matchAnimation matches
 
-
         @board.on 'remove', (block)=>
             @stage.removeChild block.s 
 
-        @board.on 'add', (block)=>
-            @initBlock block
+        @board.on 'dispersal', (args)=>
+            @dispersalAnimation (args)
 
     initBackground: ()->
         @background = new createjs.Shape()
@@ -38,14 +40,16 @@ class CanvasBoardRenderer extends BoardRenderer
     initBlock: (block)->
         block.s = new createjs.Shape()
 
-        @release(block)
+        @release block
 
-        color = @colors[block.color]
+        color = if block.color then @colors[block.color] else 'gray'
 
         block.s.graphics
             .beginFill color
             .drawRect 0, 0, @size, @size
-        
+
+        @renderBlock block
+
         @stage.addChild block.s
 
 
@@ -86,34 +90,71 @@ class CanvasBoardRenderer extends BoardRenderer
         ease = createjs.Ease.linear
 
         if (b1? and not b2?) or (b2? and not b1?)
-            console.log 'ok'
             length += 100
             ease = createjs.Ease.quadOut
-
 
         t1 = createjs.Tween.get(b1.s).to(x: b1.s.x+@size, length, ease) if b1?
         t2 = createjs.Tween.get(b2.s).to(x: b2.s.x-@size, length, ease) if b2?   
 
-        (new createjs.Tween).wait(length).call =>
+        setTimeout =>
             @release b1, b2
             @board.done 'swap'
+        , length
+
 
     matchAnimation: (matches)->
         length = 200
 
         each = (b)=>
-            createjs.Tween.get(b.s).to(alpha: 0, length).play()
+            b.t = createjs.Tween.get(b.s).to(alpha: 0, length)
 
         for set in matches
             @hold set
             for block in set
                 each(block)
 
+
         setTimeout =>
             @release set for set in matches
             @board.done 'match'
         , length
 
+    dispersalAnimation: (args)->
+
+        oldBlocks = args.oldBlocks
+        newBlocks = args.newBlocks
+
+        perLength = 100
+        length = perLength * (newBlocks.length+1)
+
+        @board.pause()
+
+        @hold oldBlocks
+
+        for b, i in newBlocks
+            fn = ((b1, b2)=>
+                return => 
+                    @initBlock b1
+                    @stage.removeChild b2
+            )(b, oldBlocks[i])
+
+            setTimeout fn, i*perLength
+
+
+        #     setTimeout =>
+        #         @initBlock newBlocks[i]
+        #         @stage.removeChild newBlocks[i].s
+        #     , i * 100
+
+        # for b, i in oldBlocks.blocks
+            # @stage.removeChild b.s
+            # b.s = newBlocks[i].s
+            # b.s.graphics.beginFill(/'red').drawRect(20,20)
+
+        setTimeout =>
+            @board.done 'dispersal'
+            @board.continue()
+        ,length
 
 
     hold: (obj)-> 
@@ -127,10 +168,6 @@ class CanvasBoardRenderer extends BoardRenderer
         return unless obj?
         return (@release o for o in obj) if obj.length? and obj.length > 1?
         obj._stop = false
-
-
-
-
 
         
 class CanvasRenderer extends Renderer

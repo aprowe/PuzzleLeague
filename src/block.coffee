@@ -4,7 +4,8 @@
 zz.class.block = class Block extends Positional
 
 	constructor: (@x, @y)->
-		@active = true
+		@canSwap = true
+		@color = false
 		super
 
 ############################################
@@ -16,23 +17,28 @@ zz.class.colorBlock = class ColorBlock extends Block
 
 	constructor: (@x, @y, @color)->
 		super @x, @y
-		unless @color?
-			@color = Math.round(Math.random()*@colors)%@colors
+		@color = Math.round(Math.random()*@colors)%@colors + 1
 
 
 ############################################
 ##  Big Block
 ############################################
-class bigBlock extends Block
+class BlockGroup extends Positional
 
 	constructor: (@x, @y, @w, @h)->
 		super @x, @y
-		@active = false
 		@blocks = []
+		@bottom = []
 
-		forall @w, @h, (i,j)->
-			@blocks.push new Block(@x + i, @y + j)
+		forall @w, @h, (i,j)=>
+			b = new Block(@x + i, @y + j)
 
+			b.group = this
+			b.canSwap = false
+			b.color = false
 
+			@bottom.push b if (j == 0)
+			@blocks.push b
 
-
+	moveAll: (x,y)->
+		b.move(x,y) for b in @blocks

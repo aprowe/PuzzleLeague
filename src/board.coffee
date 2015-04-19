@@ -21,7 +21,10 @@ zz.class.board = class Board extends zz.class.base
 
         score: 0
 
+        ## Block Array
         blocks: []
+
+        groups: []
 
 
     constructor: ()->
@@ -34,6 +37,9 @@ zz.class.board = class Board extends zz.class.base
         for y in [-1..4]    
             @blocks.push b for b in @createRow y
 
+
+        @addGroup(new BlockGroup(1,7,3,3))
+
         ## Set Up Cursor
         @cursor = new zz.class.positional
         @cursor.limit [0, @width-2, 0, @height-2]
@@ -41,11 +47,14 @@ zz.class.board = class Board extends zz.class.base
 
         ## start game ticker
         zz.game.ticker.on 'tick', =>
-            @counter++
+            @counter++ unless @paused
 
             if @counter > @speed
                 @counter = 0
                 @pushRow() 
+
+            # if Math.random() < 0.1 and @groups.length == 0 
+                # @addGroup(new BlockGroup(1,7,3,3))
 
             @update()
 
@@ -60,6 +69,10 @@ zz.class.board = class Board extends zz.class.base
         @blocks.push b for b in @createRow -1
 
         @update()
+
+    addGroup: (group)->
+        @groups.push group
+        @addBlocks group.blocks
 
     blockArray: ->
         # return @_blockArray if @_blockArray?
@@ -77,7 +90,10 @@ zz.class.board = class Board extends zz.class.base
         b2 = @grid[@cursor.x+1][@cursor.y]
 
         x = @cursor.x
-        
+
+        return if b1? and not b1.canSwap
+        return if b2? and not b2.canSwap
+
         @queue 'swap', [b1,b2], =>
             b1.x = x+1 if b1?
             b2.x = x if b2?
@@ -103,12 +119,14 @@ zz.class.board = class Board extends zz.class.base
     getColumns: ()-> @grid
 
     getAdjacent: (block)->
-        blocks = []
-        blocks.push @grid[block.x][block.y+1]
-        blocks.push @grid[block.x][block.y-1]
+        grid = @grid
 
-        blocks.push @grid[block.x-1][block.y] if @grid[block.x-1]?
-        blocks.push @grid[block.x+1][block.y] if @grid[block.x+1]?
+        blocks = []
+        blocks.push grid[block.x][block.y+1]
+        blocks.push grid[block.x][block.y-1]
+
+        blocks.push grid[block.x-1][block.y] if grid[block.x-1]?
+        blocks.push grid[block.x+1][block.y] if grid[block.x+1]?
 
         return (b for b in blocks when b?)
 
@@ -132,7 +150,7 @@ zz.class.board = class Board extends zz.class.base
 
     checkBlocks: (b1, b2)->
         return false unless b1? and b2?
-        return false if b1.matched? or b2.matched?
+        return false unless b1.color and b2.color
         b1.color == b2.color
 
     getMatches: ->
@@ -147,7 +165,10 @@ zz.class.board = class Board extends zz.class.base
         return matches
 
     clearMatches: (matches)->
-        @clearBlocks m for m in matches
+        for m in matches
+            @clearBlocks m 
+            @checkDisperse m
+
         @score += matches.length
 
     addBlocks: (blocks)->
@@ -158,20 +179,37 @@ zz.class.board = class Board extends zz.class.base
         @_blockArray = null
 
     clearBlocks: (blocks)->
+        blocks = [blocks] unless blocks.length
+
         for b in blocks
             @emit 'remove', b
             @blocks.remove(b)
 
         @_blockArray = null
 
+    checkDisperse: (blocks)->
+        for block in blocks
+            for b in @getAdjacent block
+                return @disperseGroup b.group  if b.group?
+
+    disperseGroup: (group)->
+        return unless @groups.indexOf group > -1
+        @groups.remove group
+
+        newBlocks = (new ColorBlock(block.x, block.y) for block in group.blocks)
+
+        @queue 'dispersal', {oldBlocks: group.blocks, newBlocks: newBlocks}, ()=>
+            @addBlocks newBlocks
+            @clearBlocks group.blocks
+            
+
+
+
     update: ()->
         @fallDown() 
         zz.game.renderer.render()
-
         matches = @getMatches()
-
         return unless matches.length > 0 
-
         @queue 'match', matches, =>
             @clearMatches matches
             @update()
@@ -181,35 +219,45 @@ zz.class.board = class Board extends zz.class.base
     ## Positional Functions
     #########################
     fallDown: ->
-        for col in @getColumns()
-            col = col.sort (b1,b2)->
-                y1 = if b1? then b1.y else 1000
-                y2 = if b2? then b2.y else 1000
-                y1 - y2
+        ## Fall Down Indivitual Blocks
+        grid = @grid
+        for i in [0..grid.length-1]
+            for j in [1..grid[i].length-1]
+
+                continue unless grid[i][j]
+
+                continue if grid[i][j].group?
+
+                y = j
+                while grid[i][y]? and not grid[i][y-1]? and y > 0
+                    grid[i][y-1] = grid[i][y]
+                    grid[i][y-1].y--
+                    grid[i][y] = null
+                    y--
+
+        ## Fall Down Groups
+        grid = @grid
+        for group in @groups
+
+            falling = true
+            for block in group.bottom
+                if grid[block.x][block.y-1]?
+                    falling = false
+                    break
+
+            group.moveAll(0,-1) if falling
+
+    pause:   -> @paused = true
+    continue: -> @paused = false
+
+    # fallDown: ->
+    #     for col in @getColumns()
+    #         col = col.sort (b1,b2)->
+    #             y1 = if b1? then b1.y else 1000
+    #             y2 = if b2? then b2.y else 1000
+    #             y1 - y2
 
 
-            for i in [0..col.length-1]
-                col[i].y = i if col[i]?
+    #         for i in [0..col.length-1]
+    #             col[i].y = i if col[i]?
 
-    render: ->
-        str = ""
-
-        for row in [@height-1..0]
-            str += "\n"
-            for col in [0..@width-1]
-                if row is @cursor.y and col is @cursor.x
-                    str +='['
-                else
-                    str+= ' '
-
-                if @grid[col]? and @grid[col][row]?
-                    str += @grid[col][row].color
-                else
-                    str += '-'
-
-                if row is @cursor.y and col is @cursor.x+1
-                    str +=']'
-                else
-                    str+= ' '
-
-        return str

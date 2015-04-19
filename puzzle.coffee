@@ -33,7 +33,7 @@ root = if window? then window else this
 
     ## Function to remove an item from an array
     Array.prototype.remove = (item)->
-        if this.indexOf(item) > 0
+        if this.indexOf(item) > -1
             this.splice this.indexOf(item), 1
         return item
 
@@ -228,6 +228,7 @@ root = if window? then window else this
     class BoardRenderer extends Base
 
 
+
         constructor: (@board)->
             super
             @init()
@@ -253,6 +254,12 @@ root = if window? then window else this
         renderBlock:  (block)->
         renderCursor: (cursor)->
         renderScore:  ()->
+
+        # @animate: (event, animation)->
+        #     @board.on 'event', (args)->
+        #         callback = animation()
+        #         setTimeout callback, 
+                
 
         size: 50 
 
@@ -369,11 +376,12 @@ root = if window? then window else this
     class CanvasBoardRenderer extends BoardRenderer
 
         colors: [
-            'red', 
+            'grey', 
             'blue',
             'green', 
-            'purple',
+            'yellow',
             'orange',
+            'red',
         ]
 
         init: ()->
@@ -381,18 +389,19 @@ root = if window? then window else this
             
             @stage = new createjs.Stage('puzzle')
 
+            ## Set up animations
+            # @animation 'swap', @swapAnimation, 100
             @board.on 'swap', (blocks)=>
-                @swapAnimation(blocks)
+                @swapAnimation blocks
 
             @board.on 'match', (matches)=>
                 @matchAnimation matches
 
-
             @board.on 'remove', (block)=>
                 @stage.removeChild block.s 
 
-            @board.on 'add', (block)=>
-                @initBlock block
+            @board.on 'dispersal', (args)=>
+                @dispersalAnimation (args)
 
         initBackground: ()->
             @background = new createjs.Shape()
@@ -405,14 +414,16 @@ root = if window? then window else this
         initBlock: (block)->
             block.s = new createjs.Shape()
 
-            @release(block)
+            @release block
 
-            color = @colors[block.color]
+            color = if block.color then @colors[block.color] else 'gray'
 
             block.s.graphics
                 .beginFill color
                 .drawRect 0, 0, @size, @size
-            
+
+            @renderBlock block
+
             @stage.addChild block.s
 
 
@@ -453,34 +464,71 @@ root = if window? then window else this
             ease = createjs.Ease.linear
 
             if (b1? and not b2?) or (b2? and not b1?)
-                console.log 'ok'
                 length += 100
                 ease = createjs.Ease.quadOut
-
 
             t1 = createjs.Tween.get(b1.s).to(x: b1.s.x+@size, length, ease) if b1?
             t2 = createjs.Tween.get(b2.s).to(x: b2.s.x-@size, length, ease) if b2?   
 
-            (new createjs.Tween).wait(length).call =>
+            setTimeout =>
                 @release b1, b2
                 @board.done 'swap'
+            , length
+
 
         matchAnimation: (matches)->
             length = 200
 
             each = (b)=>
-                createjs.Tween.get(b.s).to(alpha: 0, length).play()
+                b.t = createjs.Tween.get(b.s).to(alpha: 0, length)
 
             for set in matches
                 @hold set
                 for block in set
                     each(block)
 
+
             setTimeout =>
                 @release set for set in matches
                 @board.done 'match'
             , length
 
+        dispersalAnimation: (args)->
+
+            oldBlocks = args.oldBlocks
+            newBlocks = args.newBlocks
+
+            perLength = 100
+            length = perLength * (newBlocks.length+1)
+
+            @board.pause()
+
+            @hold oldBlocks
+
+            for b, i in newBlocks
+                fn = ((b1, b2)=>
+                    return => 
+                        @initBlock b1
+                        @stage.removeChild b2
+                )(b, oldBlocks[i])
+
+                setTimeout fn, i*perLength
+
+
+            #     setTimeout =>
+            #         @initBlock newBlocks[i]
+            #         @stage.removeChild newBlocks[i].s
+            #     , i * 100
+
+            # for b, i in oldBlocks.blocks
+                # @stage.removeChild b.s
+                # b.s = newBlocks[i].s
+                # b.s.graphics.beginFill(/'red').drawRect(20,20)
+
+            setTimeout =>
+                @board.done 'dispersal'
+                @board.continue()
+            ,length
 
 
         hold: (obj)-> 
@@ -494,10 +542,6 @@ root = if window? then window else this
             return unless obj?
             return (@release o for o in obj) if obj.length? and obj.length > 1?
             obj._stop = false
-
-
-
-
 
             
     class CanvasRenderer extends Renderer
@@ -584,7 +628,10 @@ root = if window? then window else this
 
             score: 0
 
+            ## Block Array
             blocks: []
+
+            groups: []
 
 
         constructor: ()->
@@ -597,6 +644,9 @@ root = if window? then window else this
             for y in [-1..4]    
                 @blocks.push b for b in @createRow y
 
+
+            @addGroup(new BlockGroup(1,7,3,3))
+
             ## Set Up Cursor
             @cursor = new zz.class.positional
             @cursor.limit [0, @width-2, 0, @height-2]
@@ -604,11 +654,14 @@ root = if window? then window else this
 
             ## start game ticker
             zz.game.ticker.on 'tick', =>
-                @counter++
+                @counter++ unless @paused
 
                 if @counter > @speed
                     @counter = 0
                     @pushRow() 
+
+                # if Math.random() < 0.1 and @groups.length == 0 
+                    # @addGroup(new BlockGroup(1,7,3,3))
 
                 @update()
 
@@ -623,6 +676,10 @@ root = if window? then window else this
             @blocks.push b for b in @createRow -1
 
             @update()
+
+        addGroup: (group)->
+            @groups.push group
+            @addBlocks group.blocks
 
         blockArray: ->
             # return @_blockArray if @_blockArray?
@@ -640,7 +697,10 @@ root = if window? then window else this
             b2 = @grid[@cursor.x+1][@cursor.y]
 
             x = @cursor.x
-            
+
+            return if b1? and not b1.canSwap
+            return if b2? and not b2.canSwap
+
             @queue 'swap', [b1,b2], =>
                 b1.x = x+1 if b1?
                 b2.x = x if b2?
@@ -666,12 +726,14 @@ root = if window? then window else this
         getColumns: ()-> @grid
 
         getAdjacent: (block)->
-            blocks = []
-            blocks.push @grid[block.x][block.y+1]
-            blocks.push @grid[block.x][block.y-1]
+            grid = @grid
 
-            blocks.push @grid[block.x-1][block.y] if @grid[block.x-1]?
-            blocks.push @grid[block.x+1][block.y] if @grid[block.x+1]?
+            blocks = []
+            blocks.push grid[block.x][block.y+1]
+            blocks.push grid[block.x][block.y-1]
+
+            blocks.push grid[block.x-1][block.y] if grid[block.x-1]?
+            blocks.push grid[block.x+1][block.y] if grid[block.x+1]?
 
             return (b for b in blocks when b?)
 
@@ -695,7 +757,7 @@ root = if window? then window else this
 
         checkBlocks: (b1, b2)->
             return false unless b1? and b2?
-            return false if b1.matched? or b2.matched?
+            return false unless b1.color and b2.color
             b1.color == b2.color
 
         getMatches: ->
@@ -710,7 +772,10 @@ root = if window? then window else this
             return matches
 
         clearMatches: (matches)->
-            @clearBlocks m for m in matches
+            for m in matches
+                @clearBlocks m 
+                @checkDisperse m
+
             @score += matches.length
 
         addBlocks: (blocks)->
@@ -721,20 +786,37 @@ root = if window? then window else this
             @_blockArray = null
 
         clearBlocks: (blocks)->
+            blocks = [blocks] unless blocks.length
+
             for b in blocks
                 @emit 'remove', b
                 @blocks.remove(b)
 
             @_blockArray = null
 
+        checkDisperse: (blocks)->
+            for block in blocks
+                for b in @getAdjacent block
+                    return @disperseGroup b.group  if b.group?
+
+        disperseGroup: (group)->
+            return unless @groups.indexOf group > -1
+            @groups.remove group
+
+            newBlocks = (new ColorBlock(block.x, block.y) for block in group.blocks)
+
+            @queue 'dispersal', {oldBlocks: group.blocks, newBlocks: newBlocks}, ()=>
+                @addBlocks newBlocks
+                @clearBlocks group.blocks
+                
+
+
+
         update: ()->
             @fallDown() 
             zz.game.renderer.render()
-
             matches = @getMatches()
-
             return unless matches.length > 0 
-
             @queue 'match', matches, =>
                 @clearMatches matches
                 @update()
@@ -744,38 +826,48 @@ root = if window? then window else this
         ## Positional Functions
         #########################
         fallDown: ->
-            for col in @getColumns()
-                col = col.sort (b1,b2)->
-                    y1 = if b1? then b1.y else 1000
-                    y2 = if b2? then b2.y else 1000
-                    y1 - y2
+            ## Fall Down Indivitual Blocks
+            grid = @grid
+            for i in [0..grid.length-1]
+                for j in [1..grid[i].length-1]
+
+                    continue unless grid[i][j]
+
+                    continue if grid[i][j].group?
+
+                    y = j
+                    while grid[i][y]? and not grid[i][y-1]? and y > 0
+                        grid[i][y-1] = grid[i][y]
+                        grid[i][y-1].y--
+                        grid[i][y] = null
+                        y--
+
+            ## Fall Down Groups
+            grid = @grid
+            for group in @groups
+
+                falling = true
+                for block in group.bottom
+                    if grid[block.x][block.y-1]?
+                        falling = false
+                        break
+
+                group.moveAll(0,-1) if falling
+
+        pause:   -> @paused = true
+        continue: -> @paused = false
+
+        # fallDown: ->
+        #     for col in @getColumns()
+        #         col = col.sort (b1,b2)->
+        #             y1 = if b1? then b1.y else 1000
+        #             y2 = if b2? then b2.y else 1000
+        #             y1 - y2
 
 
-                for i in [0..col.length-1]
-                    col[i].y = i if col[i]?
+        #         for i in [0..col.length-1]
+        #             col[i].y = i if col[i]?
 
-        render: ->
-            str = ""
-
-            for row in [@height-1..0]
-                str += "\n"
-                for col in [0..@width-1]
-                    if row is @cursor.y and col is @cursor.x
-                        str +='['
-                    else
-                        str+= ' '
-
-                    if @grid[col]? and @grid[col][row]?
-                        str += @grid[col][row].color
-                    else
-                        str += '-'
-
-                    if row is @cursor.y and col is @cursor.x+1
-                        str +=']'
-                    else
-                        str+= ' '
-
-            return str
 
     ############################################
     ## Block class for each block on the grid
@@ -783,7 +875,8 @@ root = if window? then window else this
     zz.class.block = class Block extends Positional
 
     	constructor: (@x, @y)->
-    		@active = true
+    		@canSwap = true
+    		@color = false
     		super
 
     ############################################
@@ -795,27 +888,31 @@ root = if window? then window else this
 
     	constructor: (@x, @y, @color)->
     		super @x, @y
-    		unless @color?
-    			@color = Math.round(Math.random()*@colors)%@colors
+    		@color = Math.round(Math.random()*@colors)%@colors + 1
 
 
     ############################################
     ##  Big Block
     ############################################
-    class bigBlock extends Block
+    class BlockGroup extends Positional
 
     	constructor: (@x, @y, @w, @h)->
     		super @x, @y
-    		@active = false
     		@blocks = []
+    		@bottom = []
 
-    		forall @w, @h, (i,j)->
-    			@blocks.push new Block(@x + i, @y + j)
+    		forall @w, @h, (i,j)=>
+    			b = new Block(@x + i, @y + j)
 
+    			b.group = this
+    			b.canSwap = false
+    			b.color = false
 
+    			@bottom.push b if (j == 0)
+    			@blocks.push b
 
-
-
+    	moveAll: (x,y)->
+    		b.move(x,y) for b in @blocks
     
     ## Instantiate Game
     new zz.class.game
