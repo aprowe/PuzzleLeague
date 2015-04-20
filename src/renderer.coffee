@@ -21,7 +21,7 @@ class BoardRenderer extends Base
 
     size: 45
 
-    constructor: (@board, @id)->
+    constructor: (@board)->
         super
         @init()
         @initBackground()

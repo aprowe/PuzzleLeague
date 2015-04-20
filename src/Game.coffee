@@ -7,7 +7,6 @@ zz.modes.single = class SinglePlayer extends Base
 
 zz.modes.multi = class MultiPlayer extends Base
 
-
 	initBoards: ->
 		boards = [
 			new Board(0),

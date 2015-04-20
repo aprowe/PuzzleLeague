@@ -386,10 +386,9 @@
 
       BoardRenderer.prototype.size = 45;
 
-      function BoardRenderer(board1, id1) {
+      function BoardRenderer(board1) {
         var b, k, len, ref;
         this.board = board1;
-        this.id = id1;
         BoardRenderer.__super__.constructor.apply(this, arguments);
         this.init();
         this.initBackground();
@@ -675,7 +674,7 @@
         score = args[1];
         set = args[2];
         colors = ["#fff", '#35B13F', '#F7DB01', '#F7040A', '#4AF7ED'];
-        text = new createjs.Text(score + " x" + chain, "20px Montserrat", colors[chain]);
+        text = new createjs.Text("" + score, "20px Montserrat", colors[chain]);
         pos = this.toPos(set[0]);
         text.x = pos.x - this.size / 2;
         text.y = pos.y;
@@ -954,13 +953,9 @@
             }
             if (_this.counter > _this.speed) {
               _this.counter = 0;
-              return _this.pushRow();
+              _this.pushRow();
+              return _this.speed *= 0.95;
             }
-          };
-        })(this));
-        zz.game.on('start', (function(_this) {
-          return function() {
-            return _this.update();
           };
         })(this));
       }
@@ -978,8 +973,7 @@
 
       Board.prototype.lose = function() {
         this.stop();
-        this.emit('loss', this);
-        return this.pause();
+        return this.emit('loss', this);
       };
 
       Board.prototype.createRow = function(y) {
@@ -1145,9 +1139,8 @@
       };
 
       Board.prototype.getMatches = function() {
-        var a, col, firstRow, k, l, len, len1, len2, len3, matches, n, p, ref, ref1, ref2, ref3, row;
+        var a, col, k, l, len, len1, len2, len3, matches, n, p, ref, ref1, ref2, ref3, row;
         matches = [];
-        firstRow = false;
         ref = this.getRows();
         for (k = 0, len = ref.length; k < len; k++) {
           row = ref[k];

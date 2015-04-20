@@ -50,9 +50,8 @@ zz.class.board = class Board extends zz.class.base
             if @counter > @speed
                 @counter = 0
                 @pushRow() 
+                @speed *= 0.95
 
-        zz.game.on 'start', =>
-            @update()
 
     checkLoss: ->
         for b in @blocks
@@ -62,8 +61,6 @@ zz.class.board = class Board extends zz.class.base
     lose: ->
         @stop()
         @emit 'loss', this
-        @pause()
-
 
     createRow: (y)-> 
         (new ColorBlock(x, y) for x in [0..@width-1])
@@ -167,7 +164,6 @@ zz.class.board = class Board extends zz.class.base
 
     getMatches: ->
         matches = []
-        firstRow = false
         for row in @getRows()
             matches.push a for a in @checkRow(row)
 
@@ -250,11 +246,8 @@ zz.class.board = class Board extends zz.class.base
             @emit 'matchComplete', matches
 
 
-    #########################
-    ## Positional Functions
-    #########################
+    ## Fall Down Indivitual Blocks
     fallDown: ()->
-        ## Fall Down Indivitual Blocks
         grid = @grid
         for i in [0..grid.length-1]
             for j in [1..grid[i].length-1]

@@ -320,7 +320,7 @@ root = if window? then window else this
 
         size: 45
 
-        constructor: (@board, @id)->
+        constructor: (@board)->
             super
             @init()
             @initBackground()
@@ -654,7 +654,7 @@ root = if window? then window else this
 
             colors = ["#fff", '#35B13F', '#F7DB01', '#F7040A', '#4AF7ED']
 
-            text = new createjs.Text "#{score} x#{chain}", "20px Montserrat", colors[chain]
+            text = new createjs.Text "#{score}", "20px Montserrat", colors[chain]
             pos = @toPos(set[0])
 
             text.x = pos.x - @size/2
@@ -840,9 +840,8 @@ root = if window? then window else this
                 if @counter > @speed
                     @counter = 0
                     @pushRow() 
+                    @speed *= 0.95
 
-            zz.game.on 'start', =>
-                @update()
 
         checkLoss: ->
             for b in @blocks
@@ -852,8 +851,6 @@ root = if window? then window else this
         lose: ->
             @stop()
             @emit 'loss', this
-            @pause()
-
 
         createRow: (y)-> 
             (new ColorBlock(x, y) for x in [0..@width-1])
@@ -957,7 +954,6 @@ root = if window? then window else this
 
         getMatches: ->
             matches = []
-            firstRow = false
             for row in @getRows()
                 matches.push a for a in @checkRow(row)
 
@@ -1040,11 +1036,8 @@ root = if window? then window else this
                 @emit 'matchComplete', matches
 
 
-        #########################
-        ## Positional Functions
-        #########################
+        ## Fall Down Indivitual Blocks
         fallDown: ()->
-            ## Fall Down Indivitual Blocks
             grid = @grid
             for i in [0..grid.length-1]
                 for j in [1..grid[i].length-1]

@@ -196,7 +196,7 @@ class CanvasBoardRenderer extends BoardRenderer
 
         colors = ["#fff", '#35B13F', '#F7DB01', '#F7040A', '#4AF7ED']
 
-        text = new createjs.Text "#{score} x#{chain}", "20px Montserrat", colors[chain]
+        text = new createjs.Text "#{score}", "20px Montserrat", colors[chain]
         pos = @toPos(set[0])
 
         text.x = pos.x - @size/2
