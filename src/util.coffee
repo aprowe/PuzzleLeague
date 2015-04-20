@@ -13,6 +13,12 @@ Array.prototype.fill = (w,h)->
     this[i] = [] for i in [0..w-1]
     this[i][h] = undefined for i in [0..w-1]
 
+## Max function
+Array.prototype.max = -> Math.max.apply null, this
+
+## Min function
+Array.prototype.min = -> Math.min.apply null, this
+
 
 forall = (w,h,fn)->
     arr = []

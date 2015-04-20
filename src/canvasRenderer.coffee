@@ -11,9 +11,9 @@ class CanvasBoardRenderer extends BoardRenderer
     ]
 
     init: ()->
-        $('#puzzle').attr width: @board.width * @size , height: @board.height * @size
-        
-        @stage = new createjs.Stage('puzzle')
+        $("#puzzle-#{@board.id}").attr width: @board.width * @size , height: @board.height * @size
+            
+        @stage = new createjs.Stage("puzzle-#{@board.id}")
 
         ## Set up animations
         # @animation 'swap', @swapAnimation, 100
@@ -28,6 +28,15 @@ class CanvasBoardRenderer extends BoardRenderer
 
         @board.on 'dispersal', (args)=>
             @dispersalAnimation (args)
+
+        @board.on 'groupMove', (args)=>
+            @groupMoveAnimation (args)
+
+        @board.on 'scoring', (args)=>
+            @scoringAnimation(args)
+
+        @board.on 'loss', (args)=>
+            @lossAnimation()
 
     initBackground: ()->
         @background = new createjs.Shape()
@@ -57,6 +66,7 @@ class CanvasBoardRenderer extends BoardRenderer
         cursor.s = new createjs.Shape()
 
         cursor.s.graphics
+            .setStrokeStyle 2
             .beginStroke 'white'
             .drawRect 0, 0, @size*2, @size
 
@@ -79,6 +89,10 @@ class CanvasBoardRenderer extends BoardRenderer
         pos = @toPos b
         b.s.x = pos.x
         b.s.y = pos.y - @offset()
+
+    renderScore: ->
+        if (@board.id == 0)
+            $('#score').html(@board.score)
 
     swapAnimation: (blocks)->
         length = 100
@@ -103,7 +117,8 @@ class CanvasBoardRenderer extends BoardRenderer
 
 
     matchAnimation: (matches)->
-        length = 200
+        length = 800
+        @board.pause()
 
         each = (b)=>
             b.t = createjs.Tween.get(b.s).to(alpha: 0, length)
@@ -113,8 +128,8 @@ class CanvasBoardRenderer extends BoardRenderer
             for block in set
                 each(block)
 
-
         setTimeout =>
+            @board.continue()
             @release set for set in matches
             @board.done 'match'
         , length
@@ -155,6 +170,53 @@ class CanvasBoardRenderer extends BoardRenderer
             @board.done 'dispersal'
             @board.continue()
         ,length
+
+    groupMoveAnimation: (args)->
+        length = 300
+
+        group = args[0]
+        distance = args[1]
+
+        for b in group.blocks
+            @initBlock b unless b.s
+            @hold(b)
+            pos = @toPos(b).y + distance * @size + @offset()
+            createjs.Tween.get(b.s).to({y: pos}, length, createjs.Ease.sinIn)
+
+        setTimeout =>
+            @release b for b in group.blocks
+            @board.done 'groupMove'
+        , length
+
+
+    scoringAnimation: (args)->
+        chain = args[0]
+        score = args[1]
+        set = args[2]
+
+        colors = ["#fff", '#35B13F', '#F7DB01', '#F7040A', '#4AF7ED']
+
+        text = new createjs.Text "#{score} x#{chain}", "20px Montserrat", colors[chain]
+        pos = @toPos(set[0])
+
+        text.x = pos.x - @size/2
+        text.y = pos.y
+
+        createjs.Tween.get(text).to 
+            y: pos.y - @size * 2
+            alpha: 0.0
+        , 1000
+        .call => 
+            @stage.removeChild text
+
+        @stage.addChild text
+
+    lossAnimation: ->
+        for b in @board.blocks
+            @hold b 
+            b.color = false
+            @stage.removeChild b.s
+            @initBlock b
 
 
     hold: (obj)-> 

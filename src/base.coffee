@@ -34,12 +34,13 @@ zz.class.base = class Base
 		return unless @_events[event]?
 		fn.call(this, args) for fn in @_events[event]
 
-	done: (event)->
+	done: (event, args)->
 		return unless @_queue[event]?
-		@_queue[event][0].call(this, @_queue[event][1])
-		delete @_queue[event]
+		fn = @_queue[event]
+		@_queue[event] = null
+		fn.call this, args
 
 	queue: (event, args, fn)->
-		@_queue[event] = [fn, args]
+		@_queue[event] = fn
 		@emit event, args
 

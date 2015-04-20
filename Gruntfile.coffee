@@ -27,6 +27,7 @@ module.exports = (grunt) ->
                       'src/renderer.coffee',
                       'src/canvasRenderer.coffee',
                       'src/controller.coffee',
+                      'src/soundController.coffee',
                       'src/board.coffee',
                       'src/block.coffee',
                       'src/tail.coffee',

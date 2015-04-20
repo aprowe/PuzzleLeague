@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ColorBlock, Controller, EventController, Game, Positional, Renderer, Ticker, forall, zz;
+    var Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ColorBlock, Controller, EventController, Game, MultiPlayer, Positional, Renderer, SinglePlayer, SoundController, Ticker, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -35,6 +35,12 @@
         results.push(this[i][h] = void 0);
       }
       return results;
+    };
+    Array.prototype.max = function() {
+      return Math.max.apply(null, this);
+    };
+    Array.prototype.min = function() {
+      return Math.min.apply(null, this);
     };
     forall = function(w, h, fn) {
       var arr, i, j, k, l, ref, ref1;
@@ -91,16 +97,18 @@
         return results;
       };
 
-      Base.prototype.done = function(event) {
+      Base.prototype.done = function(event, args) {
+        var fn;
         if (this._queue[event] == null) {
           return;
         }
-        this._queue[event][0].call(this, this._queue[event][1]);
-        return delete this._queue[event];
+        fn = this._queue[event];
+        this._queue[event] = null;
+        return fn.call(this, args);
       };
 
       Base.prototype.queue = function(event, args, fn) {
-        this._queue[event] = [fn, args];
+        this._queue[event] = fn;
         return this.emit(event, args);
       };
 
@@ -163,7 +171,7 @@
         return Ticker.__super__.constructor.apply(this, arguments);
       }
 
-      Ticker.prototype.framerate = 25;
+      Ticker.prototype.framerate = 60;
 
       Ticker.prototype.running = false;
 
@@ -194,11 +202,85 @@
               _this.tick();
               return _this.elapsed++;
             };
-          })(this), 1000 / this.framerate);
+          })(this), 1000.0 / this.framerate);
         }
       };
 
       return Ticker;
+
+    })(Base);
+    zz.modes = {};
+    zz.modes.single = SinglePlayer = (function(superClass) {
+      extend(SinglePlayer, superClass);
+
+      function SinglePlayer() {
+        return SinglePlayer.__super__.constructor.apply(this, arguments);
+      }
+
+      SinglePlayer.prototype.initBoards = function() {
+        return [new Board(0)];
+      };
+
+      return SinglePlayer;
+
+    })(Base);
+    zz.modes.multi = MultiPlayer = (function(superClass) {
+      extend(MultiPlayer, superClass);
+
+      function MultiPlayer() {
+        return MultiPlayer.__super__.constructor.apply(this, arguments);
+      }
+
+      MultiPlayer.prototype.initBoards = function() {
+        var b, boards, k, len;
+        boards = [new Board(0), new Board(1)];
+        boards[0].opponent = boards[1];
+        boards[1].opponent = boards[0];
+        for (k = 0, len = boards.length; k < len; k++) {
+          b = boards[k];
+          this.setUpEvents(b);
+        }
+        return boards;
+      };
+
+      MultiPlayer.prototype.setUpEvents = function(board) {
+        board.on('score', function(score) {
+          var h, w, x, y;
+          console.log(score);
+          if (score < 50) {
+            return;
+          }
+          if (score >= 50) {
+            w = 3;
+            h = 2;
+          }
+          if (score >= 100) {
+            w = 7;
+            h = 1;
+          }
+          if (score >= 150) {
+            w = 5;
+            h = 2;
+          }
+          if (score >= 200) {
+            w = 7;
+            h = 2;
+          }
+          if (score >= 300) {
+            w = 7;
+            h = 3;
+          }
+          x = Math.random() * (board.width - w);
+          x = Math.round(x);
+          y = board.height - h;
+          return board.opponent.addGroup(new BlockGroup(x, y, w, h));
+        });
+        return board.on('loss', function() {
+          return board.opponent.stop();
+        });
+      };
+
+      return MultiPlayer;
 
     })(Base);
     zz["class"].game = Game = (function(superClass) {
@@ -210,22 +292,53 @@
         renderer: {}
       };
 
-      function Game() {
+      function Game(mode) {
+        var b;
+        if (mode == null) {
+          mode = 'multi';
+        }
         Game.__super__.constructor.apply(this, arguments);
         zz.game = this;
         this.ticker = new zz["class"].ticker;
         this.ticker.on('tick', (function(_this) {
           return function() {
-            return _this.renderer.render();
+            return _this.loop();
           };
         })(this));
-        this.boards = [new Board];
+        this.mode = new zz.modes[mode];
+        this.boards = this.mode.initBoards();
         this.renderer = new CanvasRenderer(this);
-        this.controller = new zz["class"].eventController(this.boards[0]);
+        this.controllers = (function() {
+          var k, len, ref, results;
+          ref = this.boards;
+          results = [];
+          for (k = 0, len = ref.length; k < len; k++) {
+            b = ref[k];
+            results.push(new EventController(b));
+          }
+          return results;
+        }).call(this);
+        this.soundsControllers = (function() {
+          var k, len, ref, results;
+          ref = this.boards;
+          results = [];
+          for (k = 0, len = ref.length; k < len; k++) {
+            b = ref[k];
+            results.push(new SoundController(b));
+          }
+          return results;
+        }).call(this);
       }
 
+      Game.prototype.initBoards = function() {};
+
       Game.prototype.start = function() {
+        this.emit('start');
         return this.ticker.start();
+      };
+
+      Game.prototype.loop = function() {
+        return this.renderer.render();
       };
 
       return Game;
@@ -242,11 +355,11 @@
         this.boards = [];
         $((function(_this) {
           return function() {
-            var b, k, len, ref, results;
+            var b, i, k, len, ref, results;
             ref = _this.game.boards;
             results = [];
-            for (k = 0, len = ref.length; k < len; k++) {
-              b = ref[k];
+            for (i = k = 0, len = ref.length; k < len; i = ++k) {
+              b = ref[i];
               results.push(_this.boards.push(new _this.boardRenderer(b)));
             }
             return results;
@@ -271,9 +384,12 @@
     BoardRenderer = (function(superClass) {
       extend(BoardRenderer, superClass);
 
-      function BoardRenderer(board1) {
+      BoardRenderer.prototype.size = 45;
+
+      function BoardRenderer(board1, id1) {
         var b, k, len, ref;
         this.board = board1;
+        this.id = id1;
         BoardRenderer.__super__.constructor.apply(this, arguments);
         this.init();
         this.initBackground();
@@ -315,8 +431,6 @@
 
       BoardRenderer.prototype.renderScore = function() {};
 
-      BoardRenderer.prototype.size = 50;
-
       BoardRenderer.prototype.offset = function() {
         return this.board.counter / this.board.speed * this.size;
       };
@@ -341,11 +455,11 @@
       CanvasBoardRenderer.prototype.colors = ['grey', 'blue', 'green', 'yellow', 'orange', 'red'];
 
       CanvasBoardRenderer.prototype.init = function() {
-        $('#puzzle').attr({
+        $("#puzzle-" + this.board.id).attr({
           width: this.board.width * this.size,
           height: this.board.height * this.size
         });
-        this.stage = new createjs.Stage('puzzle');
+        this.stage = new createjs.Stage("puzzle-" + this.board.id);
         this.board.on('swap', (function(_this) {
           return function(blocks) {
             return _this.swapAnimation(blocks);
@@ -361,9 +475,24 @@
             return _this.stage.removeChild(block.s);
           };
         })(this));
-        return this.board.on('dispersal', (function(_this) {
+        this.board.on('dispersal', (function(_this) {
           return function(args) {
             return _this.dispersalAnimation(args);
+          };
+        })(this));
+        this.board.on('groupMove', (function(_this) {
+          return function(args) {
+            return _this.groupMoveAnimation(args);
+          };
+        })(this));
+        this.board.on('scoring', (function(_this) {
+          return function(args) {
+            return _this.scoringAnimation(args);
+          };
+        })(this));
+        return this.board.on('loss', (function(_this) {
+          return function(args) {
+            return _this.lossAnimation();
           };
         })(this));
       };
@@ -386,7 +515,7 @@
 
       CanvasBoardRenderer.prototype.initCursor = function(cursor) {
         cursor.s = new createjs.Shape();
-        cursor.s.graphics.beginStroke('white').drawRect(0, 0, this.size * 2, this.size);
+        cursor.s.graphics.setStrokeStyle(2).beginStroke('white').drawRect(0, 0, this.size * 2, this.size);
         return this.stage.addChild(cursor.s);
       };
 
@@ -413,6 +542,12 @@
         pos = this.toPos(b);
         b.s.x = pos.x;
         return b.s.y = pos.y - this.offset();
+      };
+
+      CanvasBoardRenderer.prototype.renderScore = function() {
+        if (this.board.id === 0) {
+          return $('#score').html(this.board.score);
+        }
       };
 
       CanvasBoardRenderer.prototype.swapAnimation = function(blocks) {
@@ -446,7 +581,8 @@
 
       CanvasBoardRenderer.prototype.matchAnimation = function(matches) {
         var block, each, k, l, len, len1, length, set;
-        length = 200;
+        length = 800;
+        this.board.pause();
         each = (function(_this) {
           return function(b) {
             return b.t = createjs.Tween.get(b.s).to({
@@ -465,6 +601,7 @@
         return setTimeout((function(_this) {
           return function() {
             var len2, n;
+            _this.board["continue"]();
             for (n = 0, len2 = matches.length; n < len2; n++) {
               set = matches[n];
               _this.release(set);
@@ -500,6 +637,71 @@
             return _this.board["continue"]();
           };
         })(this), length);
+      };
+
+      CanvasBoardRenderer.prototype.groupMoveAnimation = function(args) {
+        var b, distance, group, k, len, length, pos, ref;
+        length = 300;
+        group = args[0];
+        distance = args[1];
+        ref = group.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          if (!b.s) {
+            this.initBlock(b);
+          }
+          this.hold(b);
+          pos = this.toPos(b).y + distance * this.size + this.offset();
+          createjs.Tween.get(b.s).to({
+            y: pos
+          }, length, createjs.Ease.sinIn);
+        }
+        return setTimeout((function(_this) {
+          return function() {
+            var l, len1, ref1;
+            ref1 = group.blocks;
+            for (l = 0, len1 = ref1.length; l < len1; l++) {
+              b = ref1[l];
+              _this.release(b);
+            }
+            return _this.board.done('groupMove');
+          };
+        })(this), length);
+      };
+
+      CanvasBoardRenderer.prototype.scoringAnimation = function(args) {
+        var chain, colors, pos, score, set, text;
+        chain = args[0];
+        score = args[1];
+        set = args[2];
+        colors = ["#fff", '#35B13F', '#F7DB01', '#F7040A', '#4AF7ED'];
+        text = new createjs.Text(score + " x" + chain, "20px Montserrat", colors[chain]);
+        pos = this.toPos(set[0]);
+        text.x = pos.x - this.size / 2;
+        text.y = pos.y;
+        createjs.Tween.get(text).to({
+          y: pos.y - this.size * 2,
+          alpha: 0.0
+        }, 1000).call((function(_this) {
+          return function() {
+            return _this.stage.removeChild(text);
+          };
+        })(this));
+        return this.stage.addChild(text);
+      };
+
+      CanvasBoardRenderer.prototype.lossAnimation = function() {
+        var b, k, len, ref, results;
+        ref = this.board.blocks;
+        results = [];
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          this.hold(b);
+          b.color = false;
+          this.stage.removeChild(b.s);
+          results.push(this.initBlock(b));
+        }
+        return results;
       };
 
       CanvasBoardRenderer.prototype.hold = function(obj) {
@@ -595,16 +797,16 @@
       Controller.prototype.states = {
         playing: {
           up: function() {
-            return this.board.cursor.move(0, 1);
+            return this.board.moveCursor(0, 1);
           },
           down: function() {
-            return this.board.cursor.move(0, -1);
+            return this.board.moveCursor(0, -1);
           },
           left: function() {
-            return this.board.cursor.move(-1, 0);
+            return this.board.moveCursor(-1, 0);
           },
           right: function() {
-            return this.board.cursor.move(1, 0);
+            return this.board.moveCursor(1, 0);
           },
           swap: function() {
             return this.board.swap();
@@ -625,17 +827,26 @@
     zz["class"].eventController = EventController = (function(superClass) {
       extend(EventController, superClass);
 
-      EventController.prototype.map = {
-        37: 'left',
-        38: 'up',
-        39: 'right',
-        40: 'down',
-        32: 'swap'
-      };
+      EventController.prototype.MAPS = [
+        {
+          37: 'left',
+          38: 'up',
+          39: 'right',
+          40: 'down',
+          32: 'swap'
+        }, {
+          65: 'left',
+          87: 'up',
+          68: 'right',
+          83: 'down',
+          81: 'swap'
+        }
+      ];
 
       function EventController(board1) {
         this.board = board1;
         EventController.__super__.constructor.call(this, this.board);
+        this.map = this.MAPS[this.board.id];
         $((function(_this) {
           return function() {
             return $('body').keydown(function(e) {
@@ -653,23 +864,61 @@
       return EventController;
 
     })(zz["class"].controller);
+    SoundController = (function(superClass) {
+      extend(SoundController, superClass);
+
+      SoundController.prototype.sounds = {
+        click: 'click.wav',
+        swoosh: 'swoosh.mp3',
+        activate: 'activate.wav'
+      };
+
+      SoundController.prototype.events = {
+        match: 'activate',
+        cursorMove: 'click',
+        swap: 'swoosh'
+      };
+
+      function SoundController(board1) {
+        var key, ref, ref1, value;
+        this.board = board1;
+        ref = this.sounds;
+        for (key in ref) {
+          value = ref[key];
+          createjs.Sound.registerSound("assets/sounds/" + value, key);
+        }
+        ref1 = this.events;
+        for (key in ref1) {
+          value = ref1[key];
+          this.board.on(key, (function(id) {
+            return function() {
+              return createjs.Sound.play(id);
+            };
+          })(value));
+        }
+      }
+
+      return SoundController;
+
+    })(Base);
     zz["class"].board = Board = (function(superClass) {
       extend(Board, superClass);
 
-      Board.prototype.defaults = {
-        width: 8,
-        height: 10,
-        speed: 200,
-        counter: 0,
-        cursor: {},
-        score: 0,
-        blocks: [],
-        groups: []
-      };
+      Board.prototype.width = 8;
 
-      function Board() {
-        var b, k, l, len, ref, y;
+      Board.prototype.height = 10;
+
+      Board.prototype.speed = 60 * 15;
+
+      Board.prototype.counter = 0;
+
+      function Board(id1) {
+        this.id = id1;
         Board.__super__.constructor.apply(this, arguments);
+        this.blocks = [];
+        this.groups = [];
+        this.score = 0;
+        this.stopped = false;
         Object.defineProperty(this, 'grid', {
           get: (function(_this) {
             return function() {
@@ -677,29 +926,61 @@
             };
           })(this)
         });
-        for (y = k = -1; k <= 4; y = ++k) {
-          ref = this.createRow(y);
-          for (l = 0, len = ref.length; l < len; l++) {
-            b = ref[l];
-            this.blocks.push(b);
-          }
+        while (((function(_this) {
+            return function() {
+              var b, k, l, len, ref, y;
+              _this.blocks = [];
+              for (y = k = -1; k <= 4; y = ++k) {
+                ref = _this.createRow(y);
+                for (l = 0, len = ref.length; l < len; l++) {
+                  b = ref[l];
+                  _this.blocks.push(b);
+                }
+              }
+              return _this.getMatches().length > 0;
+            };
+          })(this))()) {
+          'do';
         }
-        this.addGroup(new BlockGroup(1, 7, 3, 3));
         this.cursor = new zz["class"].positional;
         this.cursor.limit([0, this.width - 2, 0, this.height - 2]);
         zz.game.ticker.on('tick', (function(_this) {
           return function() {
+            if (_this.stopped) {
+              return;
+            }
             if (!_this.paused) {
               _this.counter++;
             }
             if (_this.counter > _this.speed) {
               _this.counter = 0;
-              _this.pushRow();
+              return _this.pushRow();
             }
+          };
+        })(this));
+        zz.game.on('start', (function(_this) {
+          return function() {
             return _this.update();
           };
         })(this));
       }
+
+      Board.prototype.checkLoss = function() {
+        var b, k, len, ref;
+        ref = this.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          if (b.y >= this.height - 1 && b.active) {
+            return this.lose();
+          }
+        }
+      };
+
+      Board.prototype.lose = function() {
+        this.stop();
+        this.emit('loss', this);
+        return this.pause();
+      };
 
       Board.prototype.createRow = function(y) {
         var k, ref, results, x;
@@ -762,10 +1043,16 @@
               b1.x = x + 1;
             }
             if (b2 != null) {
-              return b2.x = x;
+              b2.x = x;
             }
+            return _this.update();
           };
         })(this));
+      };
+
+      Board.prototype.moveCursor = function(x, y) {
+        this.emit('cursorMove');
+        return this.cursor.move(x, y);
       };
 
       Board.prototype.getColumn = function(col) {
@@ -883,13 +1170,26 @@
       };
 
       Board.prototype.clearMatches = function(matches) {
-        var k, len, m;
+        var k, len, m, results;
+        results = [];
         for (k = 0, len = matches.length; k < len; k++) {
           m = matches[k];
           this.clearBlocks(m);
-          this.checkDisperse(m);
+          results.push(this.checkDisperse(m));
         }
-        return this.score += matches.length;
+        return results;
+      };
+
+      Board.prototype.scoreMatches = function(chain, matches) {
+        var k, len, score, set, setScore;
+        score = 0;
+        for (k = 0, len = matches.length; k < len; k++) {
+          set = matches[k];
+          setScore = chain * set.length * 10;
+          this.emit('scoring', [chain, setScore, set]);
+          score += setScore;
+        }
+        return score;
       };
 
       Board.prototype.addBlocks = function(blocks) {
@@ -899,20 +1199,21 @@
           this.emit('add', b);
           this.blocks.push(b);
         }
-        return this._blockArray = null;
+        return this.update();
       };
 
       Board.prototype.clearBlocks = function(blocks) {
-        var b, k, len;
+        var b, k, len, results;
         if (!blocks.length) {
           blocks = [blocks];
         }
+        results = [];
         for (k = 0, len = blocks.length; k < len; k++) {
           b = blocks[k];
           this.emit('remove', b);
-          this.blocks.remove(b);
+          results.push(this.blocks.remove(b));
         }
-        return this._blockArray = null;
+        return results;
       };
 
       Board.prototype.checkDisperse = function(blocks) {
@@ -956,24 +1257,43 @@
         })(this));
       };
 
-      Board.prototype.update = function() {
-        var matches;
+      Board.prototype.update = function(chain) {
+        var block, k, l, len, len1, matches, score, set;
+        if (chain == null) {
+          chain = 1;
+        }
+        this._blockArray = null;
         this.fallDown();
-        zz.game.renderer.render();
+        this.checkLoss();
+        if (zz.game.renderer.render != null) {
+          zz.game.renderer.render();
+        }
         matches = this.getMatches();
-        if (!(matches.length > 0)) {
+        if (matches.length === 0) {
+          this.emit('chainComplete', chain);
           return;
         }
+        for (k = 0, len = matches.length; k < len; k++) {
+          set = matches[k];
+          for (l = 0, len1 = set.length; l < len1; l++) {
+            block = set[l];
+            block.canSwap = false;
+          }
+        }
+        score = this.scoreMatches(chain, matches);
+        this.emit('score', score);
+        this.score += score;
         return this.queue('match', matches, (function(_this) {
           return function() {
             _this.clearMatches(matches);
-            return _this.update();
+            _this.update(chain + 1);
+            return _this.emit('matchComplete', matches);
           };
         })(this));
       };
 
       Board.prototype.fallDown = function() {
-        var block, falling, grid, group, i, j, k, l, len, len1, n, p, ref, ref1, ref2, ref3, results, y;
+        var block, d, distances, grid, group, i, j, k, l, len, len1, minDist, n, p, ref, ref1, ref2, ref3, results, y;
         grid = this.grid;
         for (i = k = 0, ref = grid.length - 1; 0 <= ref ? k <= ref : k >= ref; i = 0 <= ref ? ++k : --k) {
           for (j = l = 1, ref1 = grid[i].length - 1; 1 <= ref1 ? l <= ref1 : l >= ref1; j = 1 <= ref1 ? ++l : --l) {
@@ -992,24 +1312,31 @@
             }
           }
         }
-        grid = this.grid;
         ref2 = this.groups;
         results = [];
         for (n = 0, len = ref2.length; n < len; n++) {
           group = ref2[n];
-          falling = true;
+          distances = [];
           ref3 = group.bottom;
           for (p = 0, len1 = ref3.length; p < len1; p++) {
             block = ref3[p];
-            if (grid[block.x][block.y - 1] != null) {
-              falling = false;
-              break;
+            d = 1;
+            while ((this.grid[block.x][block.y - d] == null) && block.y - d > 0) {
+              d++;
             }
+            distances.push(d);
           }
-          if (falling) {
-            results.push(group.moveAll(0, -1));
+          minDist = distances.min() - 1;
+          if (!group.active) {
+            results.push(this.queue('groupMove', [group, minDist], (function(_this) {
+              return function() {
+                group.moveAll(0, -minDist);
+                group.activate();
+                return _this.checkLoss();
+              };
+            })(this)));
           } else {
-            results.push(void 0);
+            results.push(group.moveAll(0, -minDist));
           }
         }
         return results;
@@ -1023,6 +1350,10 @@
         return this.paused = false;
       };
 
+      Board.prototype.stop = function() {
+        return this.stopped = true;
+      };
+
       return Board;
 
     })(zz["class"].base);
@@ -1034,6 +1365,7 @@
         this.y = y1;
         this.canSwap = true;
         this.color = false;
+        this.active = true;
         Block.__super__.constructor.apply(this, arguments);
       }
 
@@ -1067,6 +1399,7 @@
         BlockGroup.__super__.constructor.call(this, this.x, this.y);
         this.blocks = [];
         this.bottom = [];
+        this.active = false;
         forall(this.w, this.h, (function(_this) {
           return function(i, j) {
             var b;
@@ -1074,6 +1407,7 @@
             b.group = _this;
             b.canSwap = false;
             b.color = false;
+            b.active = false;
             if (j === 0) {
               _this.bottom.push(b);
             }
@@ -1091,6 +1425,16 @@
           results.push(b.move(x, y));
         }
         return results;
+      };
+
+      BlockGroup.prototype.activate = function() {
+        var b, k, len, ref;
+        ref = this.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          b.active = true;
+        }
+        return this.active = true;
       };
 
       return BlockGroup;

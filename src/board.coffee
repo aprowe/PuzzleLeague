@@ -3,64 +3,70 @@
 ############################################
 zz.class.board = class Board extends zz.class.base
 
-    defaults: 
-        ## Width of board
-        width: 8
+    ## Width of board
+    width: 8
 
-        ## Height of board
-        height: 10
+    ## Height of board
+    height: 10
 
-        ## Speed of the rows raising (frames per row)
-        speed: 200
+    ## Speed of the rows raising (frames per row)
+    speed: 60*15
 
-        ## Counter to keep track of the rows rising
-        counter: 0
+    ## Counter to keep track of the rows rising
+    counter: 0
 
-        ## Player Cursor
-        cursor: {}
-
-        score: 0
-
-        ## Block Array
-        blocks: []
-
-        groups: []
-
-
-    constructor: ()->
+    constructor: (@id)->
         super
+
+        @blocks  = []
+
+        @groups  = []
+
+        @score = 0
+
+        @stopped = false
 
         ## Set up easy grid getter
         Object.defineProperty this, 'grid', get: => @blockArray()
 
         ## Populate block
-        for y in [-1..4]    
-            @blocks.push b for b in @createRow y
+        'do' while (=>
+            @blocks = []
+            for y in [-1..4]    
+                @blocks.push b for b in @createRow y
+            @getMatches().length > 0 
+        )()
 
-
-        @addGroup(new BlockGroup(1,7,3,3))
 
         ## Set Up Cursor
         @cursor = new zz.class.positional
         @cursor.limit [0, @width-2, 0, @height-2]
 
-
         ## start game ticker
         zz.game.ticker.on 'tick', =>
+            return if @stopped
             @counter++ unless @paused
 
             if @counter > @speed
                 @counter = 0
                 @pushRow() 
 
-            # if Math.random() < 0.1 and @groups.length == 0 
-                # @addGroup(new BlockGroup(1,7,3,3))
-
+        zz.game.on 'start', =>
             @update()
+
+    checkLoss: ->
+        for b in @blocks
+            if b.y >= @height-1 and b.active
+                return @lose()
+
+    lose: ->
+        @stop()
+        @emit 'loss', this
+        @pause()
+
 
     createRow: (y)-> 
         (new ColorBlock(x, y) for x in [0..@width-1])
-
 
     pushRow: ()->
         b.y++ for b in @blocks
@@ -94,10 +100,16 @@ zz.class.board = class Board extends zz.class.base
         return if b1? and not b1.canSwap
         return if b2? and not b2.canSwap
 
+
         @queue 'swap', [b1,b2], =>
             b1.x = x+1 if b1?
-            b2.x = x if b2?
+            b2.x = x if b2? 
+            @update()
 
+
+    moveCursor: (x,y)->
+        @emit 'cursorMove'
+        @cursor.move(x,y)
 
 
     #########################
@@ -169,14 +181,23 @@ zz.class.board = class Board extends zz.class.base
             @clearBlocks m 
             @checkDisperse m
 
-        @score += matches.length
+
+    scoreMatches: (chain, matches)->
+        score = 0 
+
+        for set in matches
+            setScore = chain * set.length * 10
+            @emit 'scoring', [chain, setScore, set]
+            score += setScore
+
+        return score
 
     addBlocks: (blocks)->
         for b in blocks
             @emit 'add', b
             @blocks.push b
 
-        @_blockArray = null
+        @update()
 
     clearBlocks: (blocks)->
         blocks = [blocks] unless blocks.length
@@ -184,8 +205,6 @@ zz.class.board = class Board extends zz.class.base
         for b in blocks
             @emit 'remove', b
             @blocks.remove(b)
-
-        @_blockArray = null
 
     checkDisperse: (blocks)->
         for block in blocks
@@ -201,24 +220,40 @@ zz.class.board = class Board extends zz.class.base
         @queue 'dispersal', {oldBlocks: group.blocks, newBlocks: newBlocks}, ()=>
             @addBlocks newBlocks
             @clearBlocks group.blocks
-            
+        
 
+    update: (chain=1)->
+        @_blockArray = null
 
+        @fallDown()
+        @checkLoss()
 
-    update: ()->
-        @fallDown() 
-        zz.game.renderer.render()
+        zz.game.renderer.render() if zz.game.renderer.render?
+
         matches = @getMatches()
-        return unless matches.length > 0 
+
+        if matches.length == 0
+            @emit 'chainComplete', chain
+            return
+
+        for set in matches
+            for block in set
+                block.canSwap = false
+
+        score = @scoreMatches chain, matches
+        @emit 'score', score
+        @score += score
+
         @queue 'match', matches, =>
             @clearMatches matches
-            @update()
+            @update(chain+1)
+            @emit 'matchComplete', matches
 
 
     #########################
     ## Positional Functions
     #########################
-    fallDown: ->
+    fallDown: ()->
         ## Fall Down Indivitual Blocks
         grid = @grid
         for i in [0..grid.length-1]
@@ -236,19 +271,29 @@ zz.class.board = class Board extends zz.class.base
                     y--
 
         ## Fall Down Groups
-        grid = @grid
         for group in @groups
 
-            falling = true
+            distances = []
             for block in group.bottom
-                if grid[block.x][block.y-1]?
-                    falling = false
-                    break
+                d = 1 
+                d++ while not @grid[block.x][block.y - d]? and block.y - d > 0
+                distances.push d
 
-            group.moveAll(0,-1) if falling
+            minDist = distances.min() - 1
+            if not group.active
+                @queue 'groupMove', [group, minDist], =>
+                    group.moveAll 0,-minDist
+                    group.activate()
+                    @checkLoss()
+            else 
+                group.moveAll 0,-minDist
+
+
 
     pause:   -> @paused = true
     continue: -> @paused = false
+    stop: -> @stopped = true
+
 
     # fallDown: ->
     #     for col in @getColumns()

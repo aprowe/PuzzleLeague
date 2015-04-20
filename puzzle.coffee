@@ -42,6 +42,12 @@ root = if window? then window else this
         this[i] = [] for i in [0..w-1]
         this[i][h] = undefined for i in [0..w-1]
 
+    ## Max function
+    Array.prototype.max = -> Math.max.apply null, this
+
+    ## Min function
+    Array.prototype.min = -> Math.min.apply null, this
+
 
     forall = (w,h,fn)->
         arr = []
@@ -86,13 +92,14 @@ root = if window? then window else this
     		return unless @_events[event]?
     		fn.call(this, args) for fn in @_events[event]
 
-    	done: (event)->
+    	done: (event, args)->
     		return unless @_queue[event]?
-    		@_queue[event][0].call(this, @_queue[event][1])
-    		delete @_queue[event]
+    		fn = @_queue[event]
+    		@_queue[event] = null
+    		fn.call this, args
 
     	queue: (event, args, fn)->
-    		@_queue[event] = [fn, args]
+    		@_queue[event] = fn
     		@emit event, args
 
 
@@ -138,7 +145,7 @@ root = if window? then window else this
     zz.class.ticker = class Ticker extends Base
 
     	## Frames per second
-    	framerate: 25
+    	framerate: 60
 
     	## Is Ticker paused?
     	running: false
@@ -165,7 +172,81 @@ root = if window? then window else this
     		setTimeout =>
     			@tick()
     			@elapsed++
-    		, (1000/@framerate) if @running
+    		, (1000.0/@framerate) if @running
+
+    zz.modes = {}
+
+    zz.modes.single = class SinglePlayer extends Base
+
+    	initBoards: ()-> return [new Board(0)]
+
+
+    zz.modes.multi = class MultiPlayer extends Base
+
+
+    	initBoards: ->
+    		boards = [
+    			new Board(0),
+    			new Board(1)
+    		]
+
+    		boards[0].opponent = boards[1]
+    		boards[1].opponent = boards[0]
+
+    		@setUpEvents b for b in boards
+
+    		return boards
+
+    	setUpEvents: (board)->
+    		board.on 'score', (score)->
+    			console.log score
+    			return if score < 50
+
+    			if score >= 50
+    				w = 3
+    				h = 2
+
+    			if score >= 100
+    				w = 7
+    				h = 1
+
+    			if score >= 150
+    				w = 5
+    				h = 2
+
+    			if score >= 200
+    				w = 7
+    				h = 2
+
+    			if score >= 300
+    				w = 7 
+    				h =3
+
+    			x = Math.random() * (board.width - w)
+    			x = Math.round x
+
+    			y = board.height-h
+
+    			board.opponent.addGroup(new BlockGroup(x,y,w,h))
+
+    		# board.on 'chainComplete', (chain)->
+    		# 	return if chain <= 2
+
+    		# 	w = board.width
+    		# 	h = chain - 1
+
+    		# 	x = Math.random() * (board.width - w)
+    		# 	x = Math.round x
+
+    		# 	y = board.height-h
+
+    		# 	board.opponent.addGroup(new BlockGroup(x,y,w,h))
+
+    		board.on 'loss', ->
+    			board.opponent.stop()
+
+
+
 
     ############################################
     ## Game Class singleton
@@ -183,27 +264,37 @@ root = if window? then window else this
     		renderer: {}
 
     	## Initialize game
-    	constructor: ->
+    	constructor: (mode='multi')->
     		super
 
     		zz.game = this
 
     		@ticker = new zz.class.ticker
 
-    		@ticker.on 'tick', =>
-    			@renderer.render()
+    		@ticker.on 'tick', => @loop()
 
-    		@boards = [
-    			new Board,
-    		]
+    		@mode = new zz.modes[mode]
+
+    		@boards = @mode.initBoards()
 
     		@renderer = new CanvasRenderer(this)
+    		@controllers = (new EventController(b) for b in @boards)
+    		@soundsControllers = (new SoundController(b) for b in @boards)
 
-    		@controller = new zz.class.eventController(@boards[0])
+    	initBoards: ->
 
     	## Start Ticker and game
     	start: ->
+    		@emit 'start'
     		@ticker.start()
+
+    	## Main Game Loop
+    	loop: ->
+    		@renderer.render()
+
+
+
+
 
 
     ################################
@@ -219,17 +310,17 @@ root = if window? then window else this
 
             @boards = []
             $ =>    
-                for b in @game.boards
-                    @boards.push(new @boardRenderer b)
+                for b, i in @game.boards
+                    @boards.push(new @boardRenderer(b))
 
         render: -> 
             board.render() for board in @boards
 
     class BoardRenderer extends Base
 
+        size: 45
 
-
-        constructor: (@board)->
+        constructor: (@board, @id)->
             super
             @init()
             @initBackground()
@@ -255,15 +346,8 @@ root = if window? then window else this
         renderCursor: (cursor)->
         renderScore:  ()->
 
-        # @animate: (event, animation)->
-        #     @board.on 'event', (args)->
-        #         callback = animation()
-        #         setTimeout callback, 
-                
-
-        size: 50 
-
-        offset: ()-> @board.counter / @board.speed * @size
+        offset: ()-> 
+            @board.counter / @board.speed * @size
 
         toPos: (pos)->
             x: pos.x * @size
@@ -385,9 +469,9 @@ root = if window? then window else this
         ]
 
         init: ()->
-            $('#puzzle').attr width: @board.width * @size , height: @board.height * @size
-            
-            @stage = new createjs.Stage('puzzle')
+            $("#puzzle-#{@board.id}").attr width: @board.width * @size , height: @board.height * @size
+                
+            @stage = new createjs.Stage("puzzle-#{@board.id}")
 
             ## Set up animations
             # @animation 'swap', @swapAnimation, 100
@@ -402,6 +486,15 @@ root = if window? then window else this
 
             @board.on 'dispersal', (args)=>
                 @dispersalAnimation (args)
+
+            @board.on 'groupMove', (args)=>
+                @groupMoveAnimation (args)
+
+            @board.on 'scoring', (args)=>
+                @scoringAnimation(args)
+
+            @board.on 'loss', (args)=>
+                @lossAnimation()
 
         initBackground: ()->
             @background = new createjs.Shape()
@@ -431,6 +524,7 @@ root = if window? then window else this
             cursor.s = new createjs.Shape()
 
             cursor.s.graphics
+                .setStrokeStyle 2
                 .beginStroke 'white'
                 .drawRect 0, 0, @size*2, @size
 
@@ -453,6 +547,10 @@ root = if window? then window else this
             pos = @toPos b
             b.s.x = pos.x
             b.s.y = pos.y - @offset()
+
+        renderScore: ->
+            if (@board.id == 0)
+                $('#score').html(@board.score)
 
         swapAnimation: (blocks)->
             length = 100
@@ -477,7 +575,8 @@ root = if window? then window else this
 
 
         matchAnimation: (matches)->
-            length = 200
+            length = 800
+            @board.pause()
 
             each = (b)=>
                 b.t = createjs.Tween.get(b.s).to(alpha: 0, length)
@@ -487,8 +586,8 @@ root = if window? then window else this
                 for block in set
                     each(block)
 
-
             setTimeout =>
+                @board.continue()
                 @release set for set in matches
                 @board.done 'match'
             , length
@@ -530,6 +629,53 @@ root = if window? then window else this
                 @board.continue()
             ,length
 
+        groupMoveAnimation: (args)->
+            length = 300
+
+            group = args[0]
+            distance = args[1]
+
+            for b in group.blocks
+                @initBlock b unless b.s
+                @hold(b)
+                pos = @toPos(b).y + distance * @size + @offset()
+                createjs.Tween.get(b.s).to({y: pos}, length, createjs.Ease.sinIn)
+
+            setTimeout =>
+                @release b for b in group.blocks
+                @board.done 'groupMove'
+            , length
+
+
+        scoringAnimation: (args)->
+            chain = args[0]
+            score = args[1]
+            set = args[2]
+
+            colors = ["#fff", '#35B13F', '#F7DB01', '#F7040A', '#4AF7ED']
+
+            text = new createjs.Text "#{score} x#{chain}", "20px Montserrat", colors[chain]
+            pos = @toPos(set[0])
+
+            text.x = pos.x - @size/2
+            text.y = pos.y
+
+            createjs.Tween.get(text).to 
+                y: pos.y - @size * 2
+                alpha: 0.0
+            , 1000
+            .call => 
+                @stage.removeChild text
+
+            @stage.addChild text
+
+        lossAnimation: ->
+            for b in @board.blocks
+                @hold b 
+                b.color = false
+                @stage.removeChild b.s
+                @initBlock b
+
 
         hold: (obj)-> 
             return (@hold o for o in arguments) if arguments.length > 1?
@@ -555,119 +701,162 @@ root = if window? then window else this
 
     zz.class.controller = class Controller extends Base
 
-    	board: {}
+        board: {}
 
-    	@state: null
+        @state: null
 
-    	constructor: (@board, @state='playing')->
-    		super
+        constructor: (@board, @state='playing')->
+            super
 
-    	keys: [
-    		'up',
-    		'down',
-    		'left',
-    		'right',
-    		'swap'
-    	]
+        keys: [
+            'up',
+            'down',
+            'left',
+            'right',
+            'swap'
+        ]
 
-    	states:
-    		playing: 
-    			up:    -> @board.cursor.move 0, 1
-    			down:  -> @board.cursor.move 0, -1
-    			left:  -> @board.cursor.move -1, 0
-    			right: -> @board.cursor.move  1, 0
-    			swap:  -> @board.swap()
+        states:
+            playing: 
+                up:    -> @board.moveCursor 0, 1
+                down:  -> @board.moveCursor 0, -1
+                left:  -> @board.moveCursor -1, 0
+                right: -> @board.moveCursor  1, 0
+                swap:  -> @board.swap()
 
-    	dispatch: (key, args)-> 
-    		@states[@state][key].call(this, args) if @states[@state][key]?
-    		zz.game.renderer.render()
+        dispatch: (key, args)-> 
+            @states[@state][key].call(this, args) if @states[@state][key]?
+            zz.game.renderer.render()
 
     zz.class.eventController = class EventController extends zz.class.controller
 
-    	map:
-    		37: 'left'
-    		38: 'up'
-    		39: 'right'
-    		40: 'down'
-    		32: 'swap'
+
+        MAPS: [
+            {
+                37: 'left'
+                38: 'up'
+                39: 'right'
+                40: 'down'
+                32: 'swap'
+            },
+            {
+                65: 'left'
+                87: 'up'
+                68: 'right'
+                83: 'down'
+                81: 'swap'
+            }
+        ]
+
+
+
+        constructor: (@board)->
+            super @board
+
+            @map = @MAPS[@board.id]
+
+            $ => $('body').keydown (e)=>
+                # console.log e.which
+                key = @map[e.which]
+                if key?
+                    e.preventDefault(e)
+                    @dispatch key
+
+
+
+
+
+    class SoundController extends Base
+
+    	sounds:
+    		click: 'click.wav'
+    		swoosh: 'swoosh.mp3'
+    		activate: 'activate.wav'
+
+    	events:
+    		match: 'activate'
+    		cursorMove: 'click'
+    		swap: 'swoosh'
 
     	constructor: (@board)->
-    		super @board
+    		for key,value of @sounds
+    			createjs.Sound.registerSound "assets/sounds/#{value}", key
 
-    		$ => $('body').keydown (e)=>
-    			# console.log e.which
-    			key = @map[e.which]
-    			if key?
-    				e.preventDefault(e)
-    				@dispatch key
-
-
-
-
+    		for key, value of @events
+    			@board.on key, ((id)->
+    				-> createjs.Sound.play id
+    			)(value)
+    			
 
     ############################################
     ## Board class does most of the game logic
     ############################################
     zz.class.board = class Board extends zz.class.base
 
-        defaults: 
-            ## Width of board
-            width: 8
+        ## Width of board
+        width: 8
 
-            ## Height of board
-            height: 10
+        ## Height of board
+        height: 10
 
-            ## Speed of the rows raising (frames per row)
-            speed: 200
+        ## Speed of the rows raising (frames per row)
+        speed: 60*15
 
-            ## Counter to keep track of the rows rising
-            counter: 0
+        ## Counter to keep track of the rows rising
+        counter: 0
 
-            ## Player Cursor
-            cursor: {}
-
-            score: 0
-
-            ## Block Array
-            blocks: []
-
-            groups: []
-
-
-        constructor: ()->
+        constructor: (@id)->
             super
+
+            @blocks  = []
+
+            @groups  = []
+
+            @score = 0
+
+            @stopped = false
 
             ## Set up easy grid getter
             Object.defineProperty this, 'grid', get: => @blockArray()
 
             ## Populate block
-            for y in [-1..4]    
-                @blocks.push b for b in @createRow y
+            'do' while (=>
+                @blocks = []
+                for y in [-1..4]    
+                    @blocks.push b for b in @createRow y
+                @getMatches().length > 0 
+            )()
 
-
-            @addGroup(new BlockGroup(1,7,3,3))
 
             ## Set Up Cursor
             @cursor = new zz.class.positional
             @cursor.limit [0, @width-2, 0, @height-2]
 
-
             ## start game ticker
             zz.game.ticker.on 'tick', =>
+                return if @stopped
                 @counter++ unless @paused
 
                 if @counter > @speed
                     @counter = 0
                     @pushRow() 
 
-                # if Math.random() < 0.1 and @groups.length == 0 
-                    # @addGroup(new BlockGroup(1,7,3,3))
-
+            zz.game.on 'start', =>
                 @update()
+
+        checkLoss: ->
+            for b in @blocks
+                if b.y >= @height-1 and b.active
+                    return @lose()
+
+        lose: ->
+            @stop()
+            @emit 'loss', this
+            @pause()
+
 
         createRow: (y)-> 
             (new ColorBlock(x, y) for x in [0..@width-1])
-
 
         pushRow: ()->
             b.y++ for b in @blocks
@@ -701,10 +890,16 @@ root = if window? then window else this
             return if b1? and not b1.canSwap
             return if b2? and not b2.canSwap
 
+
             @queue 'swap', [b1,b2], =>
                 b1.x = x+1 if b1?
-                b2.x = x if b2?
+                b2.x = x if b2? 
+                @update()
 
+
+        moveCursor: (x,y)->
+            @emit 'cursorMove'
+            @cursor.move(x,y)
 
 
         #########################
@@ -776,14 +971,23 @@ root = if window? then window else this
                 @clearBlocks m 
                 @checkDisperse m
 
-            @score += matches.length
+
+        scoreMatches: (chain, matches)->
+            score = 0 
+
+            for set in matches
+                setScore = chain * set.length * 10
+                @emit 'scoring', [chain, setScore, set]
+                score += setScore
+
+            return score
 
         addBlocks: (blocks)->
             for b in blocks
                 @emit 'add', b
                 @blocks.push b
 
-            @_blockArray = null
+            @update()
 
         clearBlocks: (blocks)->
             blocks = [blocks] unless blocks.length
@@ -791,8 +995,6 @@ root = if window? then window else this
             for b in blocks
                 @emit 'remove', b
                 @blocks.remove(b)
-
-            @_blockArray = null
 
         checkDisperse: (blocks)->
             for block in blocks
@@ -808,24 +1010,40 @@ root = if window? then window else this
             @queue 'dispersal', {oldBlocks: group.blocks, newBlocks: newBlocks}, ()=>
                 @addBlocks newBlocks
                 @clearBlocks group.blocks
-                
+            
 
+        update: (chain=1)->
+            @_blockArray = null
 
+            @fallDown()
+            @checkLoss()
 
-        update: ()->
-            @fallDown() 
-            zz.game.renderer.render()
+            zz.game.renderer.render() if zz.game.renderer.render?
+
             matches = @getMatches()
-            return unless matches.length > 0 
+
+            if matches.length == 0
+                @emit 'chainComplete', chain
+                return
+
+            for set in matches
+                for block in set
+                    block.canSwap = false
+
+            score = @scoreMatches chain, matches
+            @emit 'score', score
+            @score += score
+
             @queue 'match', matches, =>
                 @clearMatches matches
-                @update()
+                @update(chain+1)
+                @emit 'matchComplete', matches
 
 
         #########################
         ## Positional Functions
         #########################
-        fallDown: ->
+        fallDown: ()->
             ## Fall Down Indivitual Blocks
             grid = @grid
             for i in [0..grid.length-1]
@@ -843,19 +1061,29 @@ root = if window? then window else this
                         y--
 
             ## Fall Down Groups
-            grid = @grid
             for group in @groups
 
-                falling = true
+                distances = []
                 for block in group.bottom
-                    if grid[block.x][block.y-1]?
-                        falling = false
-                        break
+                    d = 1 
+                    d++ while not @grid[block.x][block.y - d]? and block.y - d > 0
+                    distances.push d
 
-                group.moveAll(0,-1) if falling
+                minDist = distances.min() - 1
+                if not group.active
+                    @queue 'groupMove', [group, minDist], =>
+                        group.moveAll 0,-minDist
+                        group.activate()
+                        @checkLoss()
+                else 
+                    group.moveAll 0,-minDist
+
+
 
         pause:   -> @paused = true
         continue: -> @paused = false
+        stop: -> @stopped = true
+
 
         # fallDown: ->
         #     for col in @getColumns()
@@ -877,6 +1105,7 @@ root = if window? then window else this
     	constructor: (@x, @y)->
     		@canSwap = true
     		@color = false
+    		@active = true
     		super
 
     ############################################
@@ -900,6 +1129,7 @@ root = if window? then window else this
     		super @x, @y
     		@blocks = []
     		@bottom = []
+    		@active = false
 
     		forall @w, @h, (i,j)=>
     			b = new Block(@x + i, @y + j)
@@ -907,12 +1137,17 @@ root = if window? then window else this
     			b.group = this
     			b.canSwap = false
     			b.color = false
+    			b.active = false
 
     			@bottom.push b if (j == 0)
     			@blocks.push b
 
     	moveAll: (x,y)->
     		b.move(x,y) for b in @blocks
+
+    	activate: ()->
+    		b.active = true for b in @blocks
+    		@active = true
     
     ## Instantiate Game
     new zz.class.game

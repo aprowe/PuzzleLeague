@@ -11,17 +11,17 @@ class Renderer extends Base
 
         @boards = []
         $ =>    
-            for b in @game.boards
-                @boards.push(new @boardRenderer b)
+            for b, i in @game.boards
+                @boards.push(new @boardRenderer(b))
 
     render: -> 
         board.render() for board in @boards
 
 class BoardRenderer extends Base
 
+    size: 45
 
-
-    constructor: (@board)->
+    constructor: (@board, @id)->
         super
         @init()
         @initBackground()
@@ -47,15 +47,8 @@ class BoardRenderer extends Base
     renderCursor: (cursor)->
     renderScore:  ()->
 
-    # @animate: (event, animation)->
-    #     @board.on 'event', (args)->
-    #         callback = animation()
-    #         setTimeout callback, 
-            
-
-    size: 50 
-
-    offset: ()-> @board.counter / @board.speed * @size
+    offset: ()-> 
+        @board.counter / @board.speed * @size
 
     toPos: (pos)->
         x: pos.x * @size

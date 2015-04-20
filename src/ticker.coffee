@@ -4,7 +4,7 @@
 zz.class.ticker = class Ticker extends Base
 
 	## Frames per second
-	framerate: 25
+	framerate: 60
 
 	## Is Ticker paused?
 	running: false
@@ -31,4 +31,4 @@ zz.class.ticker = class Ticker extends Base
 		setTimeout =>
 			@tick()
 			@elapsed++
-		, (1000/@framerate) if @running
+		, (1000.0/@framerate) if @running

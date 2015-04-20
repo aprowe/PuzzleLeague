@@ -1,37 +1,9 @@
 <html>
 	<head>
 	<script src='node_modules/jquery/dist/jquery.min.js'></script>
+	<script src="createjs.js"></script>
 	<script src='puzzle.js'></script>
 	<style>
-		#puzzle {
-			position: relative;
-			margin: auto;
-			margin-top: 100px;
-			background: darkgrey;
-			overflow: hidden;
-		}
-
-		.block {
-			box-sizing: border-box;
-			position: absolute;
-
-			border-radius: 2px;
-
-			background: teal;
-
-			border: 1px solid black;
-		}
-
-		.matched {
-			opacity: 0.5;
-		}
-
-		.cursor {
-			box-sizing: border-box;
-			position: absolute;
-			border: 3px dashed white;
-		}
-
 		#scoreboard {
 			box-sizing: border-box;
 			font-size: 50pt;
@@ -53,13 +25,25 @@
 			border-radius: 2px;
 
 		}
+
+		.puzzle {
+			display: inline-block;
+			/*margin: auto;*/
+			background: gray;
+		}
+
+		.puzzle-container {
+			text-align: center
+		}
 	</style>
 	</head>
 	<body>
 		<div id='scoreboard'>
 			<span id='score'></span>
 		</div>
-		<div id='puzzle'>
+		<div class='puzzle-container'>
+			<canvas class='puzzle' id='puzzle-0'></canvas>
+			<canvas class='puzzle' id='puzzle-1'></canvas>
 		</div>
 	</body>
 	<script>

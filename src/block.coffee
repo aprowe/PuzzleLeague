@@ -6,6 +6,7 @@ zz.class.block = class Block extends Positional
 	constructor: (@x, @y)->
 		@canSwap = true
 		@color = false
+		@active = true
 		super
 
 ############################################
@@ -29,6 +30,7 @@ class BlockGroup extends Positional
 		super @x, @y
 		@blocks = []
 		@bottom = []
+		@active = false
 
 		forall @w, @h, (i,j)=>
 			b = new Block(@x + i, @y + j)
@@ -36,9 +38,14 @@ class BlockGroup extends Positional
 			b.group = this
 			b.canSwap = false
 			b.color = false
+			b.active = false
 
 			@bottom.push b if (j == 0)
 			@blocks.push b
 
 	moveAll: (x,y)->
 		b.move(x,y) for b in @blocks
+
+	activate: ()->
+		b.active = true for b in @blocks
+		@active = true
