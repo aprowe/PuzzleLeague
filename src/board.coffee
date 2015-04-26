@@ -32,7 +32,7 @@ zz.class.board = class Board extends zz.class.base
         ## Populate block
         'do' while (=>
             @blocks = []
-            for y in [-1..4]    
+            for y in [-1..2]    
                 @blocks.push b for b in @createRow y
             @getMatches().length > 0 
         )()

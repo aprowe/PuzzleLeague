@@ -26,7 +26,7 @@ zz.modes.multi = class MultiPlayer extends Base
 			return if score < 50
 
 			if score >= 50
-				w = 3
+				w = 2
 				h = 2
 
 			if score >= 100

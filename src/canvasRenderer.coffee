@@ -11,10 +11,14 @@ class CanvasBoardRenderer extends BoardRenderer
     ]
 
     init: ()->
-        $("#puzzle-#{@board.id}").attr width: @board.width * @size , height: @board.height * @size
-            
+        $("#puzzle-#{@board.id}").attr
+            width: @board.width * @size
+            height: @board.height * @size
+        .show()
+
         @stage = new createjs.Stage("puzzle-#{@board.id}")
 
+        @loadSprites()
         ## Set up animations
         # @animation 'swap', @swapAnimation, 100
         @board.on 'swap', (blocks)=>
@@ -41,25 +45,24 @@ class CanvasBoardRenderer extends BoardRenderer
     initBackground: ()->
         @background = new createjs.Shape()
         @background.graphics
-            .beginFill 'black'
+            # .beginFill 'black'
             .drawRect 0, 0, @size * @board.width, @size * @board.height
 
-        @stage.addChild @background
+        @stage.addChildAt @background, 0 
 
     initBlock: (block)->
-        block.s = new createjs.Shape()
-
+        block.s = new createjs.Sprite @sprites[block.color], 'still'
         @release block
 
-        color = if block.color then @colors[block.color] else 'gray'
+        # color = if block.color then @colors[block.color] else 'gray'
 
-        block.s.graphics
-            .beginFill color
-            .drawRect 0, 0, @size, @size
+        # block.s.graphics
+            # .beginFill color
+            # .drawRect 0, 0, @size, @size
 
         @renderBlock block
 
-        @stage.addChild block.s
+        @stage.addChildAt block.s, @stage.children.length - 1, 
 
 
     initCursor: (cursor)->
@@ -87,8 +90,8 @@ class CanvasBoardRenderer extends BoardRenderer
         return unless b._stop? and not b._stop
 
         pos = @toPos b
-        b.s.x = pos.x
-        b.s.y = pos.y - @offset()
+        b.s.x = pos.x + 1 
+        b.s.y = pos.y - @offset() + 1
 
     renderScore: ->
         if (@board.id == 0)
@@ -117,11 +120,12 @@ class CanvasBoardRenderer extends BoardRenderer
 
 
     matchAnimation: (matches)->
-        length = 800
+        length = 750
         @board.pause()
 
         each = (b)=>
-            b.t = createjs.Tween.get(b.s).to(alpha: 0, length)
+            b.t = createjs.Tween.get(b.s).wait(length*.75).to(alpha: 0, length*.25)
+            b.s.gotoAndPlay 'matching'
 
         for set in matches
             @hold set
@@ -190,7 +194,7 @@ class CanvasBoardRenderer extends BoardRenderer
 
 
     scoringAnimation: (args)->
-        chain = args[0]
+        chain = args[0]-1
         score = args[1]
         set = args[2]
 
@@ -199,7 +203,7 @@ class CanvasBoardRenderer extends BoardRenderer
         text = new createjs.Text "#{score}", "20px Montserrat", colors[chain]
         pos = @toPos(set[0])
 
-        text.x = pos.x - @size/2
+        text.x = pos.x + @size/2
         text.y = pos.y
 
         createjs.Tween.get(text).to 
@@ -214,7 +218,7 @@ class CanvasBoardRenderer extends BoardRenderer
     lossAnimation: ->
         for b in @board.blocks
             @hold b 
-            b.color = false
+            b.color = 0
             @stage.removeChild b.s
             @initBlock b
 
@@ -231,7 +235,43 @@ class CanvasBoardRenderer extends BoardRenderer
         return (@release o for o in obj) if obj.length? and obj.length > 1?
         obj._stop = false
 
+    loadSprites: ()->
+        @sprites = []
+        data = 
+            frames:
+                width: 32
+                height: 32
+
+            animations:
+                still: 5
+                matching: 
+                    frames: (i for i in [5..1]).concat (i for i in [1..5])
+                    # next: 'matched'
+                    speed: 0.75
+                matched: 0
+
+        data.animations.still = 0 
+        data.images = ["assets/sprites/grey.png"]
+        @sprites.push new createjs.SpriteSheet data
+
+        data.animations.still = 5
+        data.images = ["assets/sprites/green.png"]
+        @sprites.push new createjs.SpriteSheet data
+
+        data.images = ["assets/sprites/orange.png"]
+        @sprites.push new createjs.SpriteSheet data
+
+        data.images = ["assets/sprites/yellow.png"]
+        @sprites.push new createjs.SpriteSheet data
+
+        data.images = ["assets/sprites/blue.png"]
+        @sprites.push new createjs.SpriteSheet data
+
+        data.images = ["assets/sprites/purple.png"]
+        @sprites.push new createjs.SpriteSheet data
+
         
 class CanvasRenderer extends Renderer
 
     boardRenderer: CanvasBoardRenderer
+

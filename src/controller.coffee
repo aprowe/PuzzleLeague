@@ -17,7 +17,8 @@ zz.class.controller = class Controller extends Base
         'down',
         'left',
         'right',
-        'swap'
+        'swap',
+        'advance'
     ]
 
     states:
@@ -27,6 +28,7 @@ zz.class.controller = class Controller extends Base
             left:  -> @board.moveCursor -1, 0
             right: -> @board.moveCursor  1, 0
             swap:  -> @board.swap()
+            advance:  -> @board.counter+=30
 
     dispatch: (key, args)-> 
         @states[@state][key].call(this, args) if @states[@state][key]?
@@ -42,6 +44,7 @@ zz.class.eventController = class EventController extends zz.class.controller
             39: 'right'
             40: 'down'
             32: 'swap'
+            13: 'advance'
         },
         {
             65: 'left'

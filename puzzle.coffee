@@ -183,7 +183,6 @@ root = if window? then window else this
 
     zz.modes.multi = class MultiPlayer extends Base
 
-
     	initBoards: ->
     		boards = [
     			new Board(0),
@@ -203,7 +202,7 @@ root = if window? then window else this
     			return if score < 50
 
     			if score >= 50
-    				w = 3
+    				w = 2
     				h = 2
 
     			if score >= 100
@@ -297,6 +296,47 @@ root = if window? then window else this
 
 
 
+
+
+    ## Class to Manage Menu Screens
+    class Manager
+
+        constructor: ()->
+            @menus = {}
+
+            @actions =
+                startSingle: =>
+                    @startGame('single')
+                vsFriend: => 
+                    @startGame('multi')
+
+            $ => @setUpMenu()
+
+        setUpMenu: ->
+            that = this
+
+            @menus = $('.menu')
+            @menus.find('div').click ->
+
+                id = $(this).data 'menu'
+                that.showMenu id if id? 
+                    
+                action = $(this).data 'action'
+                that.actions[action].call(that) if action?
+
+        showMenu: (id)->
+            @menus.hide()
+            $(".menu##{id}").show()
+
+        startGame: (mode)->
+            $('.main').hide()
+            @game = new Game(mode)
+            @game.start()
+        
+        endGame: ->
+            $('.main').show()
+            @game.end()
+
     ################################
     ## Rendering Class
     ################################
@@ -308,6 +348,8 @@ root = if window? then window else this
         constructor: (@game)->
             super
 
+            $('.puzzle').hide()
+
             @boards = []
             $ =>    
                 for b, i in @game.boards
@@ -318,14 +360,14 @@ root = if window? then window else this
 
     class BoardRenderer extends Base
 
-        size: 45
+        size: 34
 
         constructor: (@board)->
             super
             @init()
             @initBackground()
-            @initBlock b for b in @board.blocks
             @initCursor @board.cursor
+            @initBlock b for b in @board.blocks
             @initScore()
 
 
@@ -469,10 +511,14 @@ root = if window? then window else this
         ]
 
         init: ()->
-            $("#puzzle-#{@board.id}").attr width: @board.width * @size , height: @board.height * @size
-                
+            $("#puzzle-#{@board.id}").attr
+                width: @board.width * @size
+                height: @board.height * @size
+            .show()
+
             @stage = new createjs.Stage("puzzle-#{@board.id}")
 
+            @loadSprites()
             ## Set up animations
             # @animation 'swap', @swapAnimation, 100
             @board.on 'swap', (blocks)=>
@@ -499,25 +545,24 @@ root = if window? then window else this
         initBackground: ()->
             @background = new createjs.Shape()
             @background.graphics
-                .beginFill 'black'
+                # .beginFill 'black'
                 .drawRect 0, 0, @size * @board.width, @size * @board.height
 
-            @stage.addChild @background
+            @stage.addChildAt @background, 0 
 
         initBlock: (block)->
-            block.s = new createjs.Shape()
-
+            block.s = new createjs.Sprite @sprites[block.color], 'still'
             @release block
 
-            color = if block.color then @colors[block.color] else 'gray'
+            # color = if block.color then @colors[block.color] else 'gray'
 
-            block.s.graphics
-                .beginFill color
-                .drawRect 0, 0, @size, @size
+            # block.s.graphics
+                # .beginFill color
+                # .drawRect 0, 0, @size, @size
 
             @renderBlock block
 
-            @stage.addChild block.s
+            @stage.addChildAt block.s, @stage.children.length - 1, 
 
 
         initCursor: (cursor)->
@@ -545,8 +590,8 @@ root = if window? then window else this
             return unless b._stop? and not b._stop
 
             pos = @toPos b
-            b.s.x = pos.x
-            b.s.y = pos.y - @offset()
+            b.s.x = pos.x + 1 
+            b.s.y = pos.y - @offset() + 1
 
         renderScore: ->
             if (@board.id == 0)
@@ -575,11 +620,12 @@ root = if window? then window else this
 
 
         matchAnimation: (matches)->
-            length = 800
+            length = 750
             @board.pause()
 
             each = (b)=>
-                b.t = createjs.Tween.get(b.s).to(alpha: 0, length)
+                b.t = createjs.Tween.get(b.s).wait(length*.75).to(alpha: 0, length*.25)
+                b.s.gotoAndPlay 'matching'
 
             for set in matches
                 @hold set
@@ -648,7 +694,7 @@ root = if window? then window else this
 
 
         scoringAnimation: (args)->
-            chain = args[0]
+            chain = args[0]-1
             score = args[1]
             set = args[2]
 
@@ -657,7 +703,7 @@ root = if window? then window else this
             text = new createjs.Text "#{score}", "20px Montserrat", colors[chain]
             pos = @toPos(set[0])
 
-            text.x = pos.x - @size/2
+            text.x = pos.x + @size/2
             text.y = pos.y
 
             createjs.Tween.get(text).to 
@@ -672,7 +718,7 @@ root = if window? then window else this
         lossAnimation: ->
             for b in @board.blocks
                 @hold b 
-                b.color = false
+                b.color = 0
                 @stage.removeChild b.s
                 @initBlock b
 
@@ -689,10 +735,46 @@ root = if window? then window else this
             return (@release o for o in obj) if obj.length? and obj.length > 1?
             obj._stop = false
 
+        loadSprites: ()->
+            @sprites = []
+            data = 
+                frames:
+                    width: 32
+                    height: 32
+
+                animations:
+                    still: 5
+                    matching: 
+                        frames: (i for i in [5..1]).concat (i for i in [1..5])
+                        # next: 'matched'
+                        speed: 0.75
+                    matched: 0
+
+            data.animations.still = 0 
+            data.images = ["assets/sprites/grey.png"]
+            @sprites.push new createjs.SpriteSheet data
+
+            data.animations.still = 5
+            data.images = ["assets/sprites/green.png"]
+            @sprites.push new createjs.SpriteSheet data
+
+            data.images = ["assets/sprites/orange.png"]
+            @sprites.push new createjs.SpriteSheet data
+
+            data.images = ["assets/sprites/yellow.png"]
+            @sprites.push new createjs.SpriteSheet data
+
+            data.images = ["assets/sprites/blue.png"]
+            @sprites.push new createjs.SpriteSheet data
+
+            data.images = ["assets/sprites/purple.png"]
+            @sprites.push new createjs.SpriteSheet data
+
             
     class CanvasRenderer extends Renderer
 
         boardRenderer: CanvasBoardRenderer
+
 
 
     #########################
@@ -713,7 +795,8 @@ root = if window? then window else this
             'down',
             'left',
             'right',
-            'swap'
+            'swap',
+            'advance'
         ]
 
         states:
@@ -723,6 +806,7 @@ root = if window? then window else this
                 left:  -> @board.moveCursor -1, 0
                 right: -> @board.moveCursor  1, 0
                 swap:  -> @board.swap()
+                advance:  -> @board.counter+=30
 
         dispatch: (key, args)-> 
             @states[@state][key].call(this, args) if @states[@state][key]?
@@ -738,6 +822,7 @@ root = if window? then window else this
                 39: 'right'
                 40: 'down'
                 32: 'swap'
+                13: 'advance'
             },
             {
                 65: 'left'
@@ -822,7 +907,7 @@ root = if window? then window else this
             ## Populate block
             'do' while (=>
                 @blocks = []
-                for y in [-1..4]    
+                for y in [-1..2]    
                     @blocks.push b for b in @createRow y
                 @getMatches().length > 0 
             )()
@@ -1129,7 +1214,7 @@ root = if window? then window else this
 
     			b.group = this
     			b.canSwap = false
-    			b.color = false
+    			b.color = 0
     			b.active = false
 
     			@bottom.push b if (j == 0)
@@ -1142,8 +1227,8 @@ root = if window? then window else this
     		b.active = true for b in @blocks
     		@active = true
     
-    ## Instantiate Game
-    new zz.class.game
+    ## Start Menu Manager
+    new Manager()
 
     return zz
 )

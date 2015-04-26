@@ -9,6 +9,8 @@ class Renderer extends Base
     constructor: (@game)->
         super
 
+        $('.puzzle').hide()
+
         @boards = []
         $ =>    
             for b, i in @game.boards
@@ -19,14 +21,14 @@ class Renderer extends Base
 
 class BoardRenderer extends Base
 
-    size: 45
+    size: 34
 
     constructor: (@board)->
         super
         @init()
         @initBackground()
-        @initBlock b for b in @board.blocks
         @initCursor @board.cursor
+        @initBlock b for b in @board.blocks
         @initScore()
 
 

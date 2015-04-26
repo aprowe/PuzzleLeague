@@ -1,6 +1,6 @@
     
-    ## Instantiate Game
-    new zz.class.game
+    ## Start Menu Manager
+    new Manager()
 
     return zz
 )

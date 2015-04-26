@@ -1,0 +1,52 @@
+body {
+  font-family: Montserrat;
+  background: #13423F;
+  color: white; }
+
+.main {
+  text-align: center; }
+  .main h1 {
+    font-size: 5em; }
+  .main .options {
+    /*color: #ads;*/ }
+
+#scoreboard {
+  box-sizing: border-box;
+  font-size: 50pt;
+  font-family: Montserrat;
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  border: 1px solid blue;
+  background: whitesmoke;
+  color: black;
+  width: 150px;
+  height: 150px;
+  text-align: center;
+  line-height: 150px;
+  border-radius: 2px; }
+
+.puzzle {
+  display: inline-block;
+  /*margin: auto;*/ }
+
+.puzzle-container {
+  text-align: center; }
+  .puzzle-container .puzzle {
+    display: none;
+    background-image: url('/assets/images/back.png'); }
+
+/**
+ * Menu System
+ */
+.menu {
+  display: none; }
+  .menu > div {
+    font-size: 300%;
+    cursor: pointer; }
+    .menu > div:hover {
+      color: #CFCC1F; }
+  .menu:first-of-type {
+    display: block; }
+
+/*# sourceMappingURL=main.css.map */

@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ColorBlock, Controller, EventController, Game, MultiPlayer, Positional, Renderer, SinglePlayer, SoundController, Ticker, forall, zz;
+    var Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ColorBlock, Controller, EventController, Game, Manager, MultiPlayer, Positional, Renderer, SinglePlayer, SoundController, Ticker, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -251,7 +251,7 @@
             return;
           }
           if (score >= 50) {
-            w = 3;
+            w = 2;
             h = 2;
           }
           if (score >= 100) {
@@ -344,6 +344,64 @@
       return Game;
 
     })(Base);
+    Manager = (function() {
+      function Manager() {
+        this.menus = {};
+        this.actions = {
+          startSingle: (function(_this) {
+            return function() {
+              return _this.startGame('single');
+            };
+          })(this),
+          vsFriend: (function(_this) {
+            return function() {
+              return _this.startGame('multi');
+            };
+          })(this)
+        };
+        $((function(_this) {
+          return function() {
+            return _this.setUpMenu();
+          };
+        })(this));
+      }
+
+      Manager.prototype.setUpMenu = function() {
+        var that;
+        that = this;
+        this.menus = $('.menu');
+        return this.menus.find('div').click(function() {
+          var action, id;
+          id = $(this).data('menu');
+          if (id != null) {
+            that.showMenu(id);
+          }
+          action = $(this).data('action');
+          if (action != null) {
+            return that.actions[action].call(that);
+          }
+        });
+      };
+
+      Manager.prototype.showMenu = function(id) {
+        this.menus.hide();
+        return $(".menu#" + id).show();
+      };
+
+      Manager.prototype.startGame = function(mode) {
+        $('.main').hide();
+        this.game = new Game(mode);
+        return this.game.start();
+      };
+
+      Manager.prototype.endGame = function() {
+        $('.main').show();
+        return this.game.end();
+      };
+
+      return Manager;
+
+    })();
     Renderer = (function(superClass) {
       extend(Renderer, superClass);
 
@@ -352,6 +410,7 @@
       function Renderer(game) {
         this.game = game;
         Renderer.__super__.constructor.apply(this, arguments);
+        $('.puzzle').hide();
         this.boards = [];
         $((function(_this) {
           return function() {
@@ -384,7 +443,7 @@
     BoardRenderer = (function(superClass) {
       extend(BoardRenderer, superClass);
 
-      BoardRenderer.prototype.size = 45;
+      BoardRenderer.prototype.size = 34;
 
       function BoardRenderer(board1) {
         var b, k, len, ref;
@@ -392,12 +451,12 @@
         BoardRenderer.__super__.constructor.apply(this, arguments);
         this.init();
         this.initBackground();
+        this.initCursor(this.board.cursor);
         ref = this.board.blocks;
         for (k = 0, len = ref.length; k < len; k++) {
           b = ref[k];
           this.initBlock(b);
         }
-        this.initCursor(this.board.cursor);
         this.initScore();
       }
 
@@ -457,8 +516,9 @@
         $("#puzzle-" + this.board.id).attr({
           width: this.board.width * this.size,
           height: this.board.height * this.size
-        });
+        }).show();
         this.stage = new createjs.Stage("puzzle-" + this.board.id);
+        this.loadSprites();
         this.board.on('swap', (function(_this) {
           return function(blocks) {
             return _this.swapAnimation(blocks);
@@ -498,18 +558,15 @@
 
       CanvasBoardRenderer.prototype.initBackground = function() {
         this.background = new createjs.Shape();
-        this.background.graphics.beginFill('black').drawRect(0, 0, this.size * this.board.width, this.size * this.board.height);
-        return this.stage.addChild(this.background);
+        this.background.graphics.drawRect(0, 0, this.size * this.board.width, this.size * this.board.height);
+        return this.stage.addChildAt(this.background, 0);
       };
 
       CanvasBoardRenderer.prototype.initBlock = function(block) {
-        var color;
-        block.s = new createjs.Shape();
+        block.s = new createjs.Sprite(this.sprites[block.color], 'still');
         this.release(block);
-        color = block.color ? this.colors[block.color] : 'gray';
-        block.s.graphics.beginFill(color).drawRect(0, 0, this.size, this.size);
         this.renderBlock(block);
-        return this.stage.addChild(block.s);
+        return this.stage.addChildAt(block.s, this.stage.children.length - 1);
       };
 
       CanvasBoardRenderer.prototype.initCursor = function(cursor) {
@@ -539,8 +596,8 @@
           return;
         }
         pos = this.toPos(b);
-        b.s.x = pos.x;
-        return b.s.y = pos.y - this.offset();
+        b.s.x = pos.x + 1;
+        return b.s.y = pos.y - this.offset() + 1;
       };
 
       CanvasBoardRenderer.prototype.renderScore = function() {
@@ -580,13 +637,14 @@
 
       CanvasBoardRenderer.prototype.matchAnimation = function(matches) {
         var block, each, k, l, len, len1, length, set;
-        length = 800;
+        length = 750;
         this.board.pause();
         each = (function(_this) {
           return function(b) {
-            return b.t = createjs.Tween.get(b.s).to({
+            b.t = createjs.Tween.get(b.s).wait(length * .75).to({
               alpha: 0
-            }, length);
+            }, length * .25);
+            return b.s.gotoAndPlay('matching');
           };
         })(this);
         for (k = 0, len = matches.length; k < len; k++) {
@@ -670,13 +728,13 @@
 
       CanvasBoardRenderer.prototype.scoringAnimation = function(args) {
         var chain, colors, pos, score, set, text;
-        chain = args[0];
+        chain = args[0] - 1;
         score = args[1];
         set = args[2];
         colors = ["#fff", '#35B13F', '#F7DB01', '#F7040A', '#4AF7ED'];
         text = new createjs.Text("" + score, "20px Montserrat", colors[chain]);
         pos = this.toPos(set[0]);
-        text.x = pos.x - this.size / 2;
+        text.x = pos.x + this.size / 2;
         text.y = pos.y;
         createjs.Tween.get(text).to({
           y: pos.y - this.size * 2,
@@ -696,7 +754,7 @@
         for (k = 0, len = ref.length; k < len; k++) {
           b = ref[k];
           this.hold(b);
-          b.color = false;
+          b.color = 0;
           this.stage.removeChild(b.s);
           results.push(this.initBlock(b));
         }
@@ -763,6 +821,53 @@
         return obj._stop = false;
       };
 
+      CanvasBoardRenderer.prototype.loadSprites = function() {
+        var data, i;
+        this.sprites = [];
+        data = {
+          frames: {
+            width: 32,
+            height: 32
+          },
+          animations: {
+            still: 5,
+            matching: {
+              frames: ((function() {
+                var k, results;
+                results = [];
+                for (i = k = 5; k >= 1; i = --k) {
+                  results.push(i);
+                }
+                return results;
+              })()).concat((function() {
+                var k, results;
+                results = [];
+                for (i = k = 1; k <= 5; i = ++k) {
+                  results.push(i);
+                }
+                return results;
+              })()),
+              speed: 0.75
+            },
+            matched: 0
+          }
+        };
+        data.animations.still = 0;
+        data.images = ["assets/sprites/grey.png"];
+        this.sprites.push(new createjs.SpriteSheet(data));
+        data.animations.still = 5;
+        data.images = ["assets/sprites/green.png"];
+        this.sprites.push(new createjs.SpriteSheet(data));
+        data.images = ["assets/sprites/orange.png"];
+        this.sprites.push(new createjs.SpriteSheet(data));
+        data.images = ["assets/sprites/yellow.png"];
+        this.sprites.push(new createjs.SpriteSheet(data));
+        data.images = ["assets/sprites/blue.png"];
+        this.sprites.push(new createjs.SpriteSheet(data));
+        data.images = ["assets/sprites/purple.png"];
+        return this.sprites.push(new createjs.SpriteSheet(data));
+      };
+
       return CanvasBoardRenderer;
 
     })(BoardRenderer);
@@ -791,7 +896,7 @@
         Controller.__super__.constructor.apply(this, arguments);
       }
 
-      Controller.prototype.keys = ['up', 'down', 'left', 'right', 'swap'];
+      Controller.prototype.keys = ['up', 'down', 'left', 'right', 'swap', 'advance'];
 
       Controller.prototype.states = {
         playing: {
@@ -809,6 +914,9 @@
           },
           swap: function() {
             return this.board.swap();
+          },
+          advance: function() {
+            return this.board.counter += 30;
           }
         }
       };
@@ -832,7 +940,8 @@
           38: 'up',
           39: 'right',
           40: 'down',
-          32: 'swap'
+          32: 'swap',
+          13: 'advance'
         }, {
           65: 'left',
           87: 'up',
@@ -929,7 +1038,7 @@
             return function() {
               var b, k, l, len, ref, y;
               _this.blocks = [];
-              for (y = k = -1; k <= 4; y = ++k) {
+              for (y = k = -1; k <= 2; y = ++k) {
                 ref = _this.createRow(y);
                 for (l = 0, len = ref.length; l < len; l++) {
                   b = ref[l];
@@ -1370,10 +1479,10 @@
 
       ColorBlock.prototype.colors = 5;
 
-      function ColorBlock(x1, y1, color1) {
+      function ColorBlock(x1, y1, color) {
         this.x = x1;
         this.y = y1;
-        this.color = color1;
+        this.color = color;
         ColorBlock.__super__.constructor.call(this, this.x, this.y);
         this.color = Math.round(Math.random() * this.colors) % this.colors + 1;
       }
@@ -1399,7 +1508,7 @@
             b = new Block(_this.x + i, _this.y + j);
             b.group = _this;
             b.canSwap = false;
-            b.color = false;
+            b.color = 0;
             b.active = false;
             if (j === 0) {
               _this.bottom.push(b);
@@ -1433,7 +1542,7 @@
       return BlockGroup;
 
     })(Positional);
-    new zz["class"].game;
+    new Manager();
     return zz;
   });
 

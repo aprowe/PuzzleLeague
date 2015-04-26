@@ -37,7 +37,7 @@ class BlockGroup extends Positional
 
 			b.group = this
 			b.canSwap = false
-			b.color = false
+			b.color = 0
 			b.active = false
 
 			@bottom.push b if (j == 0)

@@ -24,6 +24,7 @@ module.exports = (grunt) ->
                       'src/positional.coffee',
                       'src/ticker.coffee',
                       'src/game.coffee',
+                      'src/manager.coffee',
                       'src/renderer.coffee',
                       'src/canvasRenderer.coffee',
                       'src/controller.coffee',
@@ -33,7 +34,12 @@ module.exports = (grunt) ->
                       'src/tail.coffee',
                   ]
                   dest: 'puzzle.coffee'
-
+        sass:
+          options:
+            sourceMap: true
+          default:
+            files:
+              'assets/css/main.css': 'assets/css/main.scss'
 
         execute: 
         	default:
@@ -42,5 +48,6 @@ module.exports = (grunt) ->
     grunt.loadNpmTasks('grunt-contrib-coffee')
     grunt.loadNpmTasks('grunt-execute')
     grunt.loadNpmTasks('grunt-contrib-concat')
+    grunt.loadNpmTasks('grunt-sass')
 
-    grunt.registerTask 'default', ['concat', 'coffee']
+    grunt.registerTask 'default', ['concat', 'coffee', 'sass']

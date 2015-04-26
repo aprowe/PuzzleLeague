@@ -4,6 +4,46 @@
 		"selected_items":
 		[
 			[
+				"sco",
+				"scoringAnimation"
+			],
+			[
+				"min",
+				"minDist"
+			],
+			[
+				"groupMOve",
+				"groupMoveAnimation"
+			],
+			[
+				"ini",
+				"initBlock"
+			],
+			[
+				"blco",
+				"blocks"
+			],
+			[
+				"remove",
+				"removeChild"
+			],
+			[
+				"da",
+				"drawRect"
+			],
+			[
+				"disper",
+				"dispersalAnimation"
+			],
+			[
+				"add",
+				"addBlocks"
+			],
+			[
+				"block",
+				"blockAnimation"
+			],
+			[
 				"renderBo",
 				"renderBlock"
 			],
@@ -18,10 +58,6 @@
 			[
 				"matc",
 				"matched"
-			],
-			[
-				"block",
-				"blockSize"
 			],
 			[
 				"match",
@@ -46,10 +82,6 @@
 			[
 				"_",
 				"_blockArray"
-			],
-			[
-				"blco",
-				"blockArray"
 			],
 			[
 				"bloc",
@@ -482,38 +514,6 @@
 			[
 				"pur",
 				"purple"
-			],
-			[
-				"marg",
-				"margin"
-			],
-			[
-				"get_",
-				"get_params"
-			],
-			[
-				"di",
-				"display"
-			],
-			[
-				"iamge",
-				"image"
-			],
-			[
-				"margi-",
-				"margin-right"
-			],
-			[
-				"wi",
-				"width"
-			],
-			[
-				"n",
-				"None"
-			],
-			[
-				"fo",
-				"follow"
 			]
 		]
 	},
@@ -523,15 +523,58 @@
 			"file": "src/board.coffee",
 			"settings":
 			{
-				"buffer_size": 4793,
+				"buffer_size": 7013,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "src/base.coffee",
+			"file": "src/soundController.coffee",
 			"settings":
 			{
-				"buffer_size": 871,
+				"buffer_size": 401,
+				"line_ending": "Unix",
+				"name": "soundController.coffee"
+			}
+		},
+		{
+			"file": "src/canvasRenderer.coffee",
+			"settings":
+			{
+				"buffer_size": 5792,
+				"line_ending": "Unix",
+				"name": "CanvasRenderer"
+			}
+		},
+		{
+			"file": "src/controller.coffee",
+			"settings":
+			{
+				"buffer_size": 1437,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/animation.coffee",
+			"settings":
+			{
+				"buffer_size": 93,
+				"line_ending": "Unix",
+				"name": "animation.coffee"
+			}
+		},
+		{
+			"file": "src/block.coffee",
+			"settings":
+			{
+				"buffer_size": 1090,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/util.coffee",
+			"settings":
+			{
+				"buffer_size": 664,
 				"line_ending": "Unix"
 			}
 		},
@@ -539,24 +582,71 @@
 			"file": "src/renderer.coffee",
 			"settings":
 			{
-				"buffer_size": 3565,
+				"buffer_size": 3661,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "src/canvasRenderer.coffee",
+			"file": "src/ticker.coffee",
 			"settings":
 			{
-				"buffer_size": 1694,
-				"line_ending": "Unix",
-				"name": "CanvasRenderer"
+				"buffer_size": 601,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/game.coffee",
+			"settings":
+			{
+				"buffer_size": 1864,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/private/etc/apache2/httpd.conf",
+			"settings":
+			{
+				"buffer_size": 20786,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/base.coffee",
+			"settings":
+			{
+				"buffer_size": 862,
+				"line_ending": "Unix"
 			}
 		},
 		{
 			"file": "Gruntfile.coffee",
 			"settings":
 			{
-				"buffer_size": 1604,
+				"buffer_size": 1903,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "assets/css/main.scss",
+			"settings":
+			{
+				"buffer_size": 811,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "puzzle.coffee",
+			"settings":
+			{
+				"buffer_size": 28752,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "assets/css/main.css",
+			"settings":
+			{
+				"buffer_size": 906,
 				"line_ending": "Unix"
 			}
 		},
@@ -564,32 +654,40 @@
 			"file": "index.html",
 			"settings":
 			{
-				"buffer_size": 1023,
+				"buffer_size": 1311,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "index2.html",
+			"file": "src/manager.coffee",
 			"settings":
 			{
-				"buffer_size": 740,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "createjs.js",
-			"settings":
-			{
-				"buffer_size": 84508,
+				"buffer_size": 806,
 				"line_ending": "Unix",
-				"name": "createjs.js"
+				"name": "manager.coffee"
 			}
 		},
 		{
-			"file": "src/block.coffee",
+			"file": "puzzle.js",
 			"settings":
 			{
-				"buffer_size": 814,
+				"buffer_size": 43575,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/tail.coffee",
+			"settings":
+			{
+				"buffer_size": 65,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/head.coffee",
+			"settings":
+			{
+				"buffer_size": 564,
 				"line_ending": "Unix"
 			}
 		}
@@ -622,12 +720,24 @@
 				"Indentation: Convert to Spaces"
 			],
 			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
 				"ren",
+				"File: Rename"
+			],
+			[
+				"rename",
 				"File: Rename"
 			],
 			[
 				"rena",
 				"File: Rename"
+			],
+			[
+				"apache",
+				"Set Syntax: Apache Conf"
 			],
 			[
 				"spac",
@@ -722,10 +832,6 @@
 				"Set Syntax: Ruby"
 			],
 			[
-				"rename",
-				"File: Rename"
-			],
-			[
 				"mark",
 				"Markdown Preview: Preview in Browser"
 			],
@@ -804,10 +910,6 @@
 			[
 				"git dif",
 				"Git: Diff Current File"
-			],
-			[
-				"insta",
-				"Package Control: Install Package"
 			],
 			[
 				"yml",
@@ -1124,10 +1226,6 @@
 			[
 				"enab",
 				"Package Control: Enable Package"
-			],
-			[
-				"browse",
-				"Preferences: Browse Packages"
 			]
 		],
 		"width": 474.0
@@ -1165,12 +1263,16 @@
 	],
 	"file_history":
 	[
+		"/Users/alexrowe/Programs/Node/PuzzleLeague/createjs.js",
+		"/Users/alexrowe/Programs/Node/PuzzleLeague/index3.html",
+		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/block.coffee",
+		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/base.coffee",
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/renderer.coffee",
+		"/Users/alexrowe/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/controller.coffee",
 		"/Users/alexrowe/Library/Application Support/Sublime Text 3/Packages/User/debug.sublime-snippet",
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/game.coffee",
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/ticker.coffee",
-		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/base.coffee",
 		"/Users/alexrowe/Programs/Node/evo/examples/tictactoe.js",
 		"/Users/alexrowe/Programs/Node/evo/LICENSE",
 		"/Users/alexrowe/Programs/Node/evo/evo.min.js",
@@ -1182,7 +1284,6 @@
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/node_modules/jquery/src/var/push.js",
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/util.coffee",
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/head.coffee",
-		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/block.coffee",
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/board.coffee",
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/node_modules/grunt-contrib-coffee/node_modules/lodash/internal/baseSortByOrder.js",
 		"/Users/alexrowe/Programs/Node/PuzzleLeague/src/positional.coffee",
@@ -1215,7 +1316,6 @@
 		"/Users/alexrowe/Library/Application Support/Sublime Text 3/Packages/Default/Default (OSX).sublime-keymap",
 		"/Users/alexrowe/Programs/Sites/Lyrics/frequencies.json",
 		"/Users/alexrowe/Programs/Sites/Lyrics/config/initializers/mime_types.rb",
-		"/Users/alexrowe/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
 		"/Users/alexrowe/Programs/Sites/Lyrics/db/migrate/20150321230821_create_words.rb",
 		"/Users/alexrowe/Programs/Sites/Lyrics/db/migrate/20150324031750_add_stanzas_and_lines_to_songs.rb",
 		"/Users/alexrowe/Programs/Sites/Lyrics/app/controllers/song_controller.rb",
@@ -1290,9 +1390,7 @@
 		"/Users/alexrowe/Programs/Node/evo/node_modules/grunt/node_modules/colors/example.html",
 		"/Users/alexrowe/Programs/Node/evo/node_modules/grunt/node_modules/grunt-legacy-log/examples.js",
 		"/Users/alexrowe/Programs/Node/evo/node_modules/grunt-execute/tasks/execute.js",
-		"/Users/alexrowe/Programs/Node/evo/src/tail.coffee",
-		"/Users/alexrowe/Programs/Node/evo/node_modules/grunt-contrib-jshint/node_modules/jshint/node_modules/shelljs/src/toEnd.js",
-		"/Users/alexrowe/Programs/Node/evo/node_modules/grunt/node_modules/rimraf/test/test-async.js"
+		"/Users/alexrowe/Programs/Node/evo/src/tail.coffee"
 	],
 	"find":
 	{
@@ -1311,6 +1409,59 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"addChildAt",
+			"a",
+			"addChild",
+			"addChildAt",
+			"addChild",
+			"div",
+			"Manager",
+			".call",
+			".calls",
+			"hidden='true'",
+			"@",
+			"@show",
+			"menu",
+			"div",
+			"60",
+			"000",
+			"00",
+			"while",
+			"100",
+			"max",
+			"ease",
+			"Game",
+			":",
+			"virtualHos",
+			"group",
+			"block",
+			"group",
+			"j",
+			"checkGroup",
+			"checkGroups",
+			"blocks",
+			"grid",
+			"bigBlock",
+			"duration",
+			"callback",
+			"1000",
+			"arguments",
+			"sets",
+			"matches",
+			"reatejs.Ease.sinInOut",
+			"arguments",
+			"length",
+			"?",
+			"200",
+			"obj",
+			"hold",
+			"1000",
+			"blocks[1]",
+			"blocks[0]",
+			"b",
+			"p",
+			"apply",
+			"call",
 			"apply",
 			"active",
 			"board",
@@ -1385,60 +1536,7 @@
 			"stooges",
 			"app",
 			"//",
-			";",
-			"//",
-			";\n",
-			"strong",
-			"3",
-			"h3",
-			"h2",
-			"over {",
-			":hover {",
-			"1:hover {",
-			"ver1",
-			"divider",
-			"50px;",
-			"h4",
-			"songs",
-			"h3",
-			".half",
-			"full",
-			"button",
-			"gap",
-			"score",
-			"MIN_LENGTH",
-			"10",
-			"songs",
-			"Song",
-			"artists",
-			"Artist",
-			"percent",
-			"Artist",
-			"\"it",
-			"\"its",
-			"its",
-			"one",
-			"me",
-			"artists",
-			"Artist",
-			"artist",
-			"Artist",
-			"artist",
-			"Artist",
-			"num",
-			"Song.where('score > 0').count",
-			"Song",
-			"Artist.where(score: nil)",
-			"@@average",
-			"#{Song.where.not(score: nil)",
-			"count",
-			"@song",
-			"Songs",
-			"song.",
-			"artist",
-			"Song.where.not(score: nil)",
-			"0",
-			"SONG_DECAY"
+			";"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1456,7 +1554,7 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 7,
 			"sheets":
 			[
 				{
@@ -1465,15 +1563,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 4793,
+						"buffer_size": 7013,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								3892,
-								3892
+								1713,
+								1713
 							]
 						],
 						"settings":
@@ -1482,90 +1580,56 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 3154.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
-					"file": "src/base.coffee",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 871,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								609,
-								609
-							],
-							[
-								667,
-								667
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 232.0,
+						"translation.y": 1074.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 2,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
-					"file": "src/renderer.coffee",
+					"buffer": 1,
+					"file": "src/soundController.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3565,
+						"buffer_size": 401,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								218,
-								218
+								401,
+								401
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"auto_name": "soundController.coffee",
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 1349.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 15,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 2,
 					"file": "src/canvasRenderer.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1694,
+						"buffer_size": 5792,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								452,
-								452
+								574,
+								574
 							]
 						],
 						"settings":
@@ -1575,33 +1639,32 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 169.0,
+						"translation.y": 154.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 4,
-					"file": "Gruntfile.coffee",
+					"buffer": 3,
+					"file": "src/controller.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1604,
+						"buffer_size": 1437,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1116,
-								1116
+								246,
+								246
 							]
 						],
 						"settings":
 						{
 							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
-							"tab_size": 2,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
@@ -1612,107 +1675,49 @@
 					"type": "text"
 				},
 				{
-					"buffer": 5,
-					"file": "index.html",
+					"buffer": 4,
+					"file": "src/animation.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1023,
+						"buffer_size": 93,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								241,
-								241
+								66,
+								66
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/HTML5/HTML.tmLanguage",
-							"translate_tabs_to_spaces": false
+							"auto_name": "animation.coffee",
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 329.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 5,
-					"type": "text"
-				},
-				{
-					"buffer": 6,
-					"file": "index2.html",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 740,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								554,
-								554
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/HTML5/HTML.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 26.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 7,
-					"type": "text"
-				},
-				{
-					"buffer": 7,
-					"file": "createjs.js",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 84508,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								3,
-								3
-							]
-						],
-						"settings":
-						{
-							"auto_name": "createjs.js",
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 27.0,
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 8,
+					"stack_index": 20,
 					"type": "text"
 				},
 				{
-					"buffer": 8,
+					"buffer": 5,
 					"file": "src/block.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 814,
+						"buffer_size": 1090,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								229,
-								229
+								1090,
+								1090
 							]
 						],
 						"settings":
@@ -1724,7 +1729,447 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
+					"stack_index": 16,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "src/util.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 664,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								538,
+								538
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 18,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "src/renderer.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3661,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								920,
+								920
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 356.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "src/ticker.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 601,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								576,
+								576
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 17,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "src/game.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1864,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								520,
+								520
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 77.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "/private/etc/apache2/httpd.conf",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 20786,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								9601,
+								9601
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/ApacheConf.tmLanguage/ApacheConf.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 3011.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 19,
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "src/base.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 862,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								424,
+								424
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 164.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 14,
+					"type": "text"
+				},
+				{
+					"buffer": 12,
+					"file": "Gruntfile.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1903,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1055,
+								1055
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 134.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 13,
+					"file": "assets/css/main.scss",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 811,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								385,
+								385
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/CSS/CSS.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 856.0,
+						"zoom_level": 1.0
+					},
 					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 14,
+					"file": "puzzle.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 28752,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1975.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 11,
+					"type": "text"
+				},
+				{
+					"buffer": 15,
+					"file": "assets/css/main.css",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 906,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/CSS/CSS.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 13,
+					"type": "text"
+				},
+				{
+					"buffer": 16,
+					"file": "index.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1311,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1265,
+								1265
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML5/HTML.tmLanguage",
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 17,
+					"file": "src/manager.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 806,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								331,
+								331
+							]
+						],
+						"settings":
+						{
+							"auto_name": "manager.coffee",
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 57.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 18,
+					"file": "puzzle.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 43575,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								9631,
+								9631
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 15.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 19,
+					"file": "src/tail.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 65,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								49,
+								49
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 20,
+					"file": "src/head.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 564,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								564,
+								564
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/IcedCoffeeScript/Syntaxes/IcedCoffeeScript.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
 					"type": "text"
 				}
 			]
@@ -1732,7 +2177,7 @@
 	],
 	"incremental_find":
 	{
-		"height": 26.0
+		"height": 32.0
 	},
 	"input":
 	{
@@ -1763,7 +2208,7 @@
 	"menu_visible": true,
 	"output.exec":
 	{
-		"height": 224.0
+		"height": 121.0
 	},
 	"output.find_results":
 	{
@@ -1795,31 +2240,203 @@
 				"src/renderer.coffee"
 			],
 			[
-				"base",
-				"src/base.coffee"
-			],
-			[
-				"tcker",
-				"src/ticker.coffee"
-			],
-			[
-				"block",
-				"src/block.coffee"
-			],
-			[
-				"board",
-				"src/board.coffee"
+				"canvas",
+				"src/canvasRenderer.coffee"
 			],
 			[
 				"boar",
 				"src/board.coffee"
 			],
 			[
+				"game",
+				"src/game.coffee"
+			],
+			[
+				"con",
+				"src/controller.coffee"
+			],
+			[
+				"ren",
+				"src/renderer.coffee"
+			],
+			[
+				"renderer",
+				"src/renderer.coffee"
+			],
+			[
+				"mainscs",
+				"assets/css/main.scss"
+			],
+			[
+				"inde",
+				"index.html"
+			],
+			[
+				"",
+				"src/manager.coffee"
+			],
+			[
+				"manager",
+				"src/manager.coffee"
+			],
+			[
+				"in",
+				"index.html"
+			],
+			[
+				"canvasren",
+				"src/canvasRenderer.coffee"
+			],
+			[
+				"board",
+				"src/board.coffee"
+			],
+			[
+				"canvasre",
+				"src/canvasRenderer.coffee"
+			],
+			[
+				"puzzlejs",
+				"puzzle.js"
+			],
+			[
+				"tail",
+				"src/tail.coffee"
+			],
+			[
+				"mana",
+				"src/manager.coffee"
+			],
+			[
+				"cnavasren",
+				"src/canvasRenderer.coffee"
+			],
+			[
+				"html",
+				"index.html"
+			],
+			[
+				"cnavas",
+				"src/canvasRenderer.coffee"
+			],
+			[
+				"man",
+				"src/manager.coffee"
+			],
+			[
+				"ma",
+				"src/manager.coffee"
+			],
+			[
+				"puzzle",
+				"puzzle.coffee"
+			],
+			[
+				"head",
+				"src/head.coffee"
+			],
+			[
+				"ind",
+				"index.html"
+			],
+			[
+				"grun",
+				"Gruntfile.coffee"
+			],
+			[
+				"main",
+				"assets/css/main.scss"
+			],
+			[
 				"grunt",
 				"Gruntfile.coffee"
 			],
 			[
+				"base",
+				"src/base.coffee"
+			],
+			[
+				"boa",
+				"src/board.coffee"
+			],
+			[
+				"bock",
+				"src/block.coffee"
+			],
+			[
+				"block",
+				"src/block.coffee"
+			],
+			[
 				"ticker",
+				"src/ticker.coffee"
+			],
+			[
+				"util",
+				"src/util.coffee"
+			],
+			[
+				"b",
+				"src/block.coffee"
+			],
+			[
+				"can",
+				"src/canvasRenderer.coffee"
+			],
+			[
+				"canv",
+				"src/canvasRenderer.coffee"
+			],
+			[
+				"canva",
+				"src/canvasRenderer.coffee"
+			],
+			[
+				"canvase",
+				"src/canvasRenderer.coffee"
+			],
+			[
+				"soundc",
+				"src/soundController.coffee"
+			],
+			[
+				"contr",
+				"src/controller.coffee"
+			],
+			[
+				"contro",
+				"src/controller.coffee"
+			],
+			[
+				"index",
+				"index.html"
+			],
+			[
+				"rendere",
+				"src/renderer.coffee"
+			],
+			[
+				"inde2",
+				"index2.html"
+			],
+			[
+				"create",
+				"createjs.js"
+			],
+			[
+				"crea",
+				"createjs.js"
+			],
+			[
+				"uti",
+				"src/util.coffee"
+			],
+			[
+				"controller",
+				"src/controller.coffee"
+			],
+			[
+				"tcker",
 				"src/ticker.coffee"
 			],
 			[
@@ -1827,20 +2444,8 @@
 				"src/ticker.coffee"
 			],
 			[
-				"contro",
-				"src/controller.coffee"
-			],
-			[
-				"game",
-				"src/game.coffee"
-			],
-			[
 				"index2",
 				"index2.html"
-			],
-			[
-				"in",
-				"index.html"
 			],
 			[
 				"blockco",
@@ -1899,16 +2504,8 @@
 				"evo.coffee"
 			],
 			[
-				"head",
-				"src/head.coffee"
-			],
-			[
 				"indescs",
 				"app/assets/stylesheets/index.scss"
-			],
-			[
-				"inde",
-				"app/views/application/index.slim"
 			],
 			[
 				"def",
@@ -1916,10 +2513,6 @@
 			],
 			[
 				"evojs",
-				"app/assets/javascripts/evo.js"
-			],
-			[
-				"",
 				"app/assets/javascripts/evo.js"
 			],
 			[
@@ -1963,24 +2556,12 @@
 				"src/block.coffee"
 			],
 			[
-				"con",
-				"src/controller.coffee"
-			],
-			[
 				"bo",
 				"src/board.coffee"
 			],
 			[
-				"ind",
-				"index.html"
-			],
-			[
 				"bloc",
 				"src/block.coffee"
-			],
-			[
-				"grun",
-				"Gruntfile.coffee"
 			],
 			[
 				"u",
@@ -2007,10 +2588,6 @@
 				"src/positional.coffee"
 			],
 			[
-				"puzzle",
-				"puzzle.coffee"
-			],
-			[
 				"puzz",
 				"puzzle.js"
 			],
@@ -2027,20 +2604,12 @@
 				"src/controller.coffee"
 			],
 			[
-				"contr",
-				"src/controller.coffee"
-			],
-			[
 				"boards",
 				"node_modules/grunt-contrib-coffee/node_modules/lodash/internal/baseSortByOrder.js"
 			],
 			[
 				"mainjs",
 				"node_modules/grunt-contrib-coffee/node_modules/uri-path/test/main.js"
-			],
-			[
-				"tail",
-				"src/tail.coffee"
 			],
 			[
 				"puz",
@@ -2063,10 +2632,6 @@
 				"node_modules/prompt/node_modules/pkginfo/examples/array-argument.js"
 			],
 			[
-				"main",
-				"main.js"
-			],
-			[
 				"ga",
 				"Game.coffee"
 			],
@@ -2077,10 +2642,6 @@
 			[
 				"wall",
 				"app/views/layouts/application.slim"
-			],
-			[
-				"index",
-				"app/assets/stylesheets/index.scss"
 			],
 			[
 				"vsy",
@@ -2109,10 +2670,6 @@
 			[
 				"pack",
 				"package.json"
-			],
-			[
-				"html",
-				"index.html"
 			],
 			[
 				"gru",
@@ -2189,118 +2746,6 @@
 			[
 				"artiviw",
 				"app/views/artist/view.slim"
-			],
-			[
-				"artiind",
-				"app/views/artist/index.slim"
-			],
-			[
-				"artists",
-				"app/views/delete/_artist.slim"
-			],
-			[
-				"artist",
-				"app/models/artist.rb"
-			],
-			[
-				"artindex",
-				"app/views/artist/index.slim"
-			],
-			[
-				"ide",
-				"app/views/application/index.slim"
-			],
-			[
-				"layu",
-				"app/views/layouts/application.slim"
-			],
-			[
-				"tob",
-				"app/views/layouts/_tob_bar.slim"
-			],
-			[
-				"sonind",
-				"app/views/song/index.slim"
-			],
-			[
-				"artnsli",
-				"app/views/artist/index.slim"
-			],
-			[
-				"artistsli",
-				"app/views/delete/_artist.slim"
-			],
-			[
-				"songin",
-				"app/views/song/index.slim"
-			],
-			[
-				"lyri",
-				"app/assets/stylesheets/Lyrics.scss"
-			],
-			[
-				"layout",
-				"app/views/layouts/application.slim"
-			],
-			[
-				"colos",
-				"app/assets/stylesheets/_colors.scss"
-			],
-			[
-				"ly",
-				"app/assets/stylesheets/Lyrics.scss"
-			],
-			[
-				"lyrics",
-				"app/assets/stylesheets/Lyrics.scss"
-			],
-			[
-				"colosc",
-				"app/assets/stylesheets/_colors.scss"
-			],
-			[
-				"artirb",
-				"app/models/artist.rb"
-			],
-			[
-				"sonr",
-				"app/models/song.rb"
-			],
-			[
-				"song",
-				"app/models/song.rb"
-			],
-			[
-				"arti",
-				"app/models/artist.rb"
-			],
-			[
-				"songcon",
-				"app/controllers/song_controller.rb"
-			],
-			[
-				"soncon",
-				"app/controllers/song_controller.rb"
-			],
-			[
-				"indexs",
-				"app/views/song/index.slim"
-			],
-			[
-				"word",
-				"app/models/word.rb"
-			],
-			[
-				"songrb",
-				"app/models/song.rb"
-			],
-			[
-				"arrb",
-				"app/models/artist.rb"
-			],
-			[
-				"articon",
-				"app/controllers/artist_controller.rb"
 			]
 		],
 		"width": 0.0

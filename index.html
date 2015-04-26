@@ -1,54 +1,40 @@
 <html>
-	<head>
-	<script src='node_modules/jquery/dist/jquery.min.js'></script>
-	<script src="createjs.js"></script>
-	<script src='puzzle.js'></script>
-	<style>
-		#scoreboard {
-			box-sizing: border-box;
-			font-size: 50pt;
-			font-family: Montserrat;
-			position: absolute;
-			top: 50px;
-			left: 50px;
+    <head>
+    <script src='node_modules/jquery/dist/jquery.min.js'></script>
+    <script src="lib/createjs.js"></script>
+    <script src='puzzle.js'></script>
+    <link rel='stylesheet' href='assets/css/main.css'/>
+    </head>
+    <body>
 
-			border: 1px solid blue;
+        <div class='main'>
+            <h1>The Puzzle League</h1>
+            <div class='menu' id='main' >
+                <div data-action='startSingle'>Single Player</div>
+                <div data-menu='multi' >Multi Player</div>
+                <div data-menu='settings' >Settings</div>
+            </div>
 
-			background: whitesmoke;
+            <div class='menu' id='multi'>
+                <div data-action='vsComputer'>Vs Computer</div>
+                <div data-action='vsFriend' >Vs Friend</div>
+                <div data-action='vsOnline' >Online</div>
+                <div data-menu='main'>Back</div>
+            </div>
 
-			width: 150px;
-			height: 150px;
+            <div class='menu' id='settings'>
+                <div data-action=''>Key Bindings</div>
+                <div data-menu='main'>Back</div>
+            </div>
+        </div>
 
-			text-align: center;
-			line-height: 150px;
 
-			border-radius: 2px;
-
-		}
-
-		.puzzle {
-			display: inline-block;
-			/*margin: auto;*/
-			background: gray;
-		}
-
-		.puzzle-container {
-			text-align: center
-		}
-	</style>
-	</head>
-	<body>
-		<div id='scoreboard'>
-			<span id='score'></span>
-		</div>
-		<div class='puzzle-container'>
-			<canvas class='puzzle' id='puzzle-0'></canvas>
-			<canvas class='puzzle' id='puzzle-1'></canvas>
-		</div>
-	</body>
-	<script>
-	$(function(){
-		zz.game.start()
-	});
-	</script>
+        <div id='scoreboard'>
+            <span id='score'></span>
+        </div>
+        <div class='puzzle-container'>
+            <canvas class='puzzle' id='puzzle-0'></canvas>
+            <canvas class='puzzle' id='puzzle-1'></canvas>
+        </div>
+    </body>
 </html>
