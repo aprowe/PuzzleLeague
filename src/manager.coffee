@@ -4,13 +4,17 @@
 class Manager
 
     constructor: ()->
+        @settings = {}
+
         @menus = {}
 
         @actions =
             startSingle: =>
-                @startGame('single')
+                @settings.players = 1
+                @startGame()
             vsFriend: => 
-                @startGame('multi')
+                @settings.players = 2
+                @startGame()
 
         $ => @setUpMenu()
 
@@ -32,7 +36,7 @@ class Manager
 
     startGame: (mode)->
         $('.main').hide()
-        @game = new Game(mode)
+        @game = new Game(@settings)
         @game.start()
     
     endGame: ->

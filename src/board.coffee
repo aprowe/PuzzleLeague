@@ -380,7 +380,7 @@ zz.class.board = class Board extends zz.class.base
         # return if score < 50
 
         shapes = 
-            20:  [7,3]
+            # 20:  [7,3]
             100: [3,2]
             150: [7,2]
             200: [3,3]

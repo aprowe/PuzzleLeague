@@ -1,5 +1,5 @@
 body {
-  font-family: Montserrat;
+  font-family: '8BIT WONDER';
   background: #13423F;
   color: white; }
 
@@ -12,14 +12,9 @@ body {
 
 #scoreboard {
   box-sizing: border-box;
-  font-size: 50pt;
-  font-family: Montserrat;
   position: absolute;
   top: 50px;
   left: 50px;
-  border: 1px solid blue;
-  background: whitesmoke;
-  color: black;
   width: 150px;
   height: 150px;
   text-align: center;

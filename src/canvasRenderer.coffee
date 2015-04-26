@@ -29,7 +29,14 @@ class CanvasBoardRenderer extends BoardRenderer
             @stage.removeChild b
 
     initBlock: (block)->
-        block.s = new createjs.Sprite @sprites[block.color], 'still'
+
+        animation = 'still'
+
+        if block.y < 0 
+            animation = 'matched'
+
+        block.s = new createjs.Sprite @sprites[block.color], animation
+
 
         @release block
         @renderBlock block
@@ -63,6 +70,10 @@ class CanvasBoardRenderer extends BoardRenderer
         @initBlock b unless b.s?
 
         return unless b._stop? and not b._stop
+
+        if b.y == -1 and not b._activated? and @offset() >= @size-1
+            b.s.gotoAndPlay 'activate'
+            b._activated = true
 
         pos = @toPos b
         b.s.x = pos.x + 1 
@@ -225,6 +236,10 @@ class CanvasBoardRenderer extends BoardRenderer
                     frames: [5,4,3,2,1,0]
                     next: 'matched'
                     speed: 0.1
+                activate:
+                    frames: [0,1,2,3,4,5]
+                    next: 'still'
+                    speed: 0.5
 
 
         # data.animations.still = 0 

@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, Controller, EventController, Game, GrayBlock, Manager, Positional, Renderer, SoundController, Ticker, forall, zz;
+    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, Controller, EventController, Game, GrayBlock, Manager, MusicController, Positional, Renderer, SoundController, Ticker, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -223,12 +223,17 @@
         renderer: {}
       };
 
+      Game.prototype.settings = {
+        players: 1
+      };
+
       function Game(settings) {
         var b;
         if (settings == null) {
           settings = {};
         }
         Game.__super__.constructor.apply(this, arguments);
+        this.settings = $.extend(this.settings, settings, true);
         zz.game = this;
         this.ticker = new zz["class"].ticker;
         this.ticker.on('tick', (function(_this) {
@@ -236,7 +241,7 @@
             return _this.loop();
           };
         })(this));
-        this.initBoards();
+        this.initBoards(this.settings.players);
         this.renderer = new CanvasRenderer(this);
         this.controllers = (function() {
           var k, len, ref, results;
@@ -258,12 +263,10 @@
           }
           return results;
         }).call(this);
+        this.musicController = new MusicController(this);
       }
 
       Game.prototype.initBoards = function(players) {
-        if (players == null) {
-          players = 2;
-        }
         if (players === 1) {
           this.boards = [new Board(0)];
           return;
@@ -289,16 +292,19 @@
     })(Base);
     Manager = (function() {
       function Manager() {
+        this.settings = {};
         this.menus = {};
         this.actions = {
           startSingle: (function(_this) {
             return function() {
-              return _this.startGame('single');
+              _this.settings.players = 1;
+              return _this.startGame();
             };
           })(this),
           vsFriend: (function(_this) {
             return function() {
-              return _this.startGame('multi');
+              _this.settings.players = 2;
+              return _this.startGame();
             };
           })(this)
         };
@@ -333,7 +339,7 @@
 
       Manager.prototype.startGame = function(mode) {
         $('.main').hide();
-        this.game = new Game(mode);
+        this.game = new Game(this.settings);
         return this.game.start();
       };
 
@@ -474,7 +480,12 @@
       };
 
       CanvasBoardRenderer.prototype.initBlock = function(block) {
-        block.s = new createjs.Sprite(this.sprites[block.color], 'still');
+        var animation;
+        animation = 'still';
+        if (block.y < 0) {
+          animation = 'matched';
+        }
+        block.s = new createjs.Sprite(this.sprites[block.color], animation);
         this.release(block);
         this.renderBlock(block);
         return this.stage.addChildAt(block.s, this.stage.children.length - 1);
@@ -505,6 +516,10 @@
         }
         if (!((b._stop != null) && !b._stop)) {
           return;
+        }
+        if (b.y === -1 && (b._activated == null) && this.offset() >= this.size - 1) {
+          b.s.gotoAndPlay('activate');
+          b._activated = true;
         }
         pos = this.toPos(b);
         b.s.x = pos.x + 1;
@@ -769,6 +784,11 @@
               frames: [5, 4, 3, 2, 1, 0],
               next: 'matched',
               speed: 0.1
+            },
+            activate: {
+              frames: [0, 1, 2, 3, 4, 5],
+              next: 'still',
+              speed: 0.5
             }
           }
         };
@@ -908,38 +928,105 @@
 
       SoundController.prototype.sounds = {
         click: 'click.wav',
-        swoosh: 'swoosh.mp3',
-        activate: 'activate.wav'
+        slide: 'slide.wav',
+        match: 'match0.wav'
       };
 
-      SoundController.prototype.events = {
-        match: 'activate',
-        cursorMove: 'click',
-        swap: 'swoosh'
+      SoundController.prototype.events = [
+        {
+          on: 'match',
+          sound: 'match',
+          settings: {
+            volume: 0.5
+          }
+        }, {
+          on: 'cursorMove',
+          sound: 'click',
+          settings: {
+            volume: 0.5
+          }
+        }, {
+          on: 'swap',
+          sound: 'slide',
+          settings: {
+            volume: 0.5
+          }
+        }
+      ];
+
+      SoundController.initialize = function() {
+        var key, ref, results, value;
+        ref = SoundController.prototype.sounds;
+        results = [];
+        for (key in ref) {
+          value = ref[key];
+          results.push(createjs.Sound.registerSound("assets/sounds/" + value, key));
+        }
+        return results;
       };
 
       function SoundController(board1) {
-        var key, ref, ref1, value;
+        var event, k, len, ref;
         this.board = board1;
-        ref = this.sounds;
-        for (key in ref) {
-          value = ref[key];
-          createjs.Sound.registerSound("assets/sounds/" + value, key);
-        }
-        ref1 = this.events;
-        for (key in ref1) {
-          value = ref1[key];
-          this.board.on(key, (function(id) {
+        ref = this.events;
+        for (k = 0, len = ref.length; k < len; k++) {
+          event = ref[k];
+          this.board.on(event.on, (function(e) {
+            console.log(e);
             return function() {
-              return createjs.Sound.play(id);
+              return createjs.Sound.play(e.sound, e.settings);
             };
-          })(value));
+          })(event));
         }
       }
 
       return SoundController;
 
     })(Base);
+    MusicController = (function(superClass) {
+      extend(MusicController, superClass);
+
+      MusicController.initialize = function() {
+        var f, files, k, len;
+        files = [
+          {
+            id: 'intro',
+            src: 'intro.mp3'
+          }, {
+            id: 'mid',
+            src: 'mid.mp3'
+          }
+        ];
+        for (k = 0, len = files.length; k < len; k++) {
+          f = files[k];
+          f.src = 'assets/music/' + f.src;
+        }
+        createjs.Sound.alternateExtensions = ["mp3"];
+        return createjs.Sound.registerSounds(files);
+      };
+
+      function MusicController(game) {
+        this.game = game;
+        this.game.on('start', (function(_this) {
+          return function() {
+            var intro;
+            intro = createjs.Sound.play('intro');
+            return intro.on('complete', function() {
+              var mid;
+              mid = createjs.Sound.play('mid');
+              return mid.loop = true;
+            });
+          };
+        })(this));
+      }
+
+      return MusicController;
+
+    })(Base);
+    $(function() {
+      MusicController.initialize();
+      return SoundController.initialize();
+    });
     zz["class"].board = Board = (function(superClass) {
       extend(Board, superClass);
 
@@ -1414,7 +1501,6 @@
           return;
         }
         shapes = {
-          20: [7, 3],
           100: [3, 2],
           150: [7, 2],
           200: [3, 3],

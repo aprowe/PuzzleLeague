@@ -14,9 +14,16 @@ zz.class.game = class Game extends Base
 		## Rending Class
 		renderer: {}
 
+
+	settings: 
+		players: 1
+
+
 	## Initialize game
 	constructor: (settings={})->
 		super
+
+		@settings = $.extend @settings, settings, true
 
 		zz.game = this
 
@@ -24,13 +31,15 @@ zz.class.game = class Game extends Base
 
 		@ticker.on 'tick', => @loop()
 
-		@initBoards()
+		@initBoards @settings.players
 
 		@renderer = new CanvasRenderer(this)
 		@controllers = (new EventController(b) for b in @boards)
 		@soundsControllers = (new SoundController(b) for b in @boards)
 
-	initBoards: (players=2)->
+		@musicController = new MusicController this
+
+	initBoards: (players)->
 		if players == 1
 			@boards = [new Board(0)]
 			return
