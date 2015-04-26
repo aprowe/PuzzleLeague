@@ -8,8 +8,9 @@ zz.class.block = class Block extends Positional
 	constructor: (@x, @y)->
 		@canSwap = true
 		@canLose = true
+		@canMatch = true
 		@color = @randomColor()
-		super
+		super @x, @y
 
 	randomColor: ->
 		Math.round(Math.random()*@colors)%@colors + 1
@@ -18,14 +19,15 @@ zz.class.block = class Block extends Positional
 class GrayBlock extends Block
 
 	constructor: (@x, @y, @group)->
-		super @x,@y
+		super @x, @y
 
 		@color = 0
-		@canSwap = 0
+		@canSwap = false
+		@canMatch = false
 
 		# Block must fall down before 
 		# it can be counted against lost
-		@canLose = 0 
+		@canLose = false
 
 ############################################
 ##  Big Block
@@ -44,10 +46,11 @@ class BlockGroup extends Positional
 		@bottom = []
 
 		forall @w, @h, (i,j)=>
-			b = new GrayBlock @x + i, @y + j this
+			b = new GrayBlock @x + i, @y + j, this
 
 			@bottom.push b if (j == 0)
 			@blocks.push b
+
 
 	moveAll: (x,y)->
 		b.move(x,y) for b in @blocks

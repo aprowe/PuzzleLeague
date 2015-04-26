@@ -1,65 +1,37 @@
 
+## Main Rendering Class
 class CanvasBoardRenderer extends BoardRenderer
 
-    colors: [
-        'grey', 
-        'blue',
-        'green', 
-        'yellow',
-        'orange',
-        'red',
-    ]
-
+    #################################
+    ## Init Functions
+    #################################
     init: ()->
-        $("#puzzle-#{@board.id}").attr
+
+        @id  = "puzzle-#{@board.id}"
+
+        ## Set up board size
+        $("##{@id}").attr
             width: @board.width * @size
             height: @board.height * @size
         .show()
 
-        @stage = new createjs.Stage("puzzle-#{@board.id}")
+        @stage = new createjs.Stage @id
 
         @loadSprites()
-        ## Set up animations
-        # @animation 'swap', @swapAnimation, 100
-        @board.on 'swap', (blocks)=>
-            @swapAnimation blocks
+        
+        @animate 'swap'
+        @animate 'match'
+        @animate 'loss'
+        @animate 'dispersal'
+        @animate 'addGroup'
 
-        @board.on 'match', (matches)=>
-            @matchAnimation matches
-
-        @board.on 'remove', (block)=>
-            @stage.removeChild block.s 
-
-        @board.on 'dispersal', (args)=>
-            @dispersalAnimation (args)
-
-        @board.on 'groupMove', (args)=>
-            @groupMoveAnimation (args)
-
-        @board.on 'scoring', (args)=>
-            @scoringAnimation(args)
-
-        @board.on 'loss', (args)=>
-            @lossAnimation()
-
-    initBackground: ()->
-        @background = new createjs.Shape()
-        @background.graphics
-            # .beginFill 'black'
-            .drawRect 0, 0, @size * @board.width, @size * @board.height
-
-        @stage.addChildAt @background, 0 
+        @board.on 'remove', (b)=>
+            @stage.removeChild b
 
     initBlock: (block)->
         block.s = new createjs.Sprite @sprites[block.color], 'still'
+
         @release block
-
-        # color = if block.color then @colors[block.color] else 'gray'
-
-        # block.s.graphics
-            # .beginFill color
-            # .drawRect 0, 0, @size, @size
-
         @renderBlock block
 
         @stage.addChildAt block.s, @stage.children.length - 1, 
@@ -75,6 +47,9 @@ class CanvasBoardRenderer extends BoardRenderer
 
         @stage.addChild cursor.s
 
+    #################################
+    ## Render / Update functions
+    #################################
     render: ()->
         super
         @stage.update()
@@ -97,6 +72,31 @@ class CanvasBoardRenderer extends BoardRenderer
         if (@board.id == 0)
             $('#score').html(@board.score)
 
+    #################################
+    # Animations
+    #################################
+    animate: (event)->
+        @board.on event, =>
+            this[event+'Animation'].apply(this, arguments)
+
+    after: (length, fn)-> setTimeout fn, length
+    
+    ## 
+    # 'Holds' a block, not letting it update it's position 
+    hold: (obj)-> 
+        return (@hold o for o in arguments) if arguments.length > 1?
+        return unless obj?
+        return (@hold o for o in obj) if obj.length? and obj.length > 1?
+        obj._stop = true
+
+    ##
+    # Releases a block so its position is updated
+    release: (obj)-> 
+        return (@release o for o in arguments) if arguments.length > 1?
+        return unless obj?
+        return (@release o for o in obj) if obj.length? and obj.length > 1?
+        obj._stop = false
+        
     swapAnimation: (blocks)->
         length = 100
 
@@ -113,11 +113,10 @@ class CanvasBoardRenderer extends BoardRenderer
         t1 = createjs.Tween.get(b1.s).to(x: b1.s.x+@size, length, ease) if b1?
         t2 = createjs.Tween.get(b2.s).to(x: b2.s.x-@size, length, ease) if b2?   
 
-        setTimeout =>
+        @after length, =>
             @release b1, b2
             @board.done 'swap'
         , length
-
 
     matchAnimation: (matches)->
         length = 750
@@ -133,11 +132,10 @@ class CanvasBoardRenderer extends BoardRenderer
             for block in set
                 each(block)
 
-        setTimeout =>
+        @after length, =>
             @board.continue()
             @release set for set in matches
             @board.done 'match'
-        , length
 
     dispersalAnimation: (args)->
 
@@ -147,51 +145,33 @@ class CanvasBoardRenderer extends BoardRenderer
         perLength = 100
         length = perLength * (newBlocks.length+1)
 
-        @board.pause()
-
         @hold oldBlocks
 
         for b, i in newBlocks
-            fn = ((b1, b2)=>
-                return => 
-                    @initBlock b1
-                    @stage.removeChild b2
-            )(b, oldBlocks[i])
+            fn = ((b)=>
+                return => @initBlock b
+            )(b)
 
             setTimeout fn, i*perLength
 
-
-        #     setTimeout =>
-        #         @initBlock newBlocks[i]
-        #         @stage.removeChild newBlocks[i].s
-        #     , i * 100
-
-        # for b, i in oldBlocks.blocks
-            # @stage.removeChild b.s
-            # b.s = newBlocks[i].s
-            # b.s.graphics.beginFill(/'red').drawRect(20,20)
-
-        setTimeout =>
+        @after length, =>
+            @stage.removeChild(b.s) for b in oldBlocks
             @board.done 'dispersal'
-            @board.continue()
-        ,length
 
-    groupMoveAnimation: (args)->
-        length = 300
-
-        group = args[0]
-        distance = args[1]
+    addGroupAnimation: (group)->
+        length = 1000
 
         for b in group.blocks
             @initBlock b unless b.s
-            @hold(b)
-            pos = @toPos(b).y + distance * @size + @offset()
-            createjs.Tween.get(b.s).to({y: pos}, length, createjs.Ease.sinIn)
+            @renderBlock b 
+            @hold b
+            # pos = @toPos(b).y * @size + @offset()
+            tmp = b.s.y
+            b.s.y = tmp - @size * @board.height - group.h
+            createjs.Tween.get(b.s).to({y: tmp}, length, createjs.Ease.bounceOut)
 
-        setTimeout =>
+        @after length, =>
             @release b for b in group.blocks
-            @board.done 'groupMove'
-        , length
 
 
     scoringAnimation: (args)->
@@ -218,23 +198,12 @@ class CanvasBoardRenderer extends BoardRenderer
 
     lossAnimation: ->
         for b in @board.blocks
-            @hold b 
+            # @hold b 
             b.color = 0
             @stage.removeChild b.s
             @initBlock b
+            b.s.gotoAndPlay 'lost'
 
-
-    hold: (obj)-> 
-        return (@hold o for o in arguments) if arguments.length > 1?
-        return unless obj?
-        return (@hold o for o in obj) if obj.length? and obj.length > 1?
-        obj._stop = true
-
-    release: (obj)-> 
-        return (@release o for o in arguments) if arguments.length > 1?
-        return unless obj?
-        return (@release o for o in obj) if obj.length? and obj.length > 1?
-        obj._stop = false
 
     loadSprites: ()->
         @sprites = []
@@ -245,17 +214,24 @@ class CanvasBoardRenderer extends BoardRenderer
 
             animations:
                 still: 5
+                fillIn: [0,1,2,3,4,5]
+                fillOut: [5,4,3,2,1,0]
                 matching: 
-                    frames: (i for i in [5..1]).concat (i for i in [1..5])
+                    frames: [0,1,2,3,4,5,4,3,2,1]
                     # next: 'matched'
                     speed: 0.75
                 matched: 0
+                lost: 
+                    frames: [5,4,3,2,1,0]
+                    next: 'matched'
+                    speed: 0.1
 
-        data.animations.still = 0 
+
+        # data.animations.still = 0 
         data.images = ["assets/sprites/grey.png"]
         @sprites.push new createjs.SpriteSheet data
 
-        data.animations.still = 5
+        # data.animations.still = 5
         data.images = ["assets/sprites/green.png"]
         @sprites.push new createjs.SpriteSheet data
 
@@ -271,7 +247,15 @@ class CanvasBoardRenderer extends BoardRenderer
         data.images = ["assets/sprites/purple.png"]
         @sprites.push new createjs.SpriteSheet data
 
-        
+
+class Animation
+
+    constructor: (@parent, @length)->
+
+    run: ()->
+
+    callback: ()->
+
 class CanvasRenderer extends Renderer
 
     boardRenderer: CanvasBoardRenderer

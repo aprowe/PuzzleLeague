@@ -94,12 +94,13 @@ root = if window? then window else this
 
     	done: (event, args)->
     		return unless @_queue[event]?
-    		fn = @_queue[event]
-    		@_queue[event] = null
+    		fn = @_queue[event].shift()
+    		return unless fn?
     		fn.call this, args
 
     	queue: (event, args, fn)->
-    		@_queue[event] = fn
+    		@_queue[event] = [] unless @_queue[event]?
+    		@_queue[event].push fn
     		@emit event, args
 
 
@@ -174,78 +175,6 @@ root = if window? then window else this
     			@elapsed++
     		, (1000.0/@framerate) if @running
 
-    zz.modes = {}
-
-    zz.modes.single = class SinglePlayer extends Base
-
-    	initBoards: ()-> return [new Board(0)]
-
-
-    zz.modes.multi = class MultiPlayer extends Base
-
-    	initBoards: ->
-    		boards = [
-    			new Board(0),
-    			new Board(1)
-    		]
-
-    		boards[0].opponent = boards[1]
-    		boards[1].opponent = boards[0]
-
-    		@setUpEvents b for b in boards
-
-    		return boards
-
-    	setUpEvents: (board)->
-    		board.on 'score', (score)->
-    			console.log score
-    			return if score < 50
-
-    			if score >= 50
-    				w = 2
-    				h = 2
-
-    			if score >= 100
-    				w = 7
-    				h = 1
-
-    			if score >= 150
-    				w = 5
-    				h = 2
-
-    			if score >= 200
-    				w = 7
-    				h = 2
-
-    			if score >= 300
-    				w = 7 
-    				h =3
-
-    			x = Math.random() * (board.width - w)
-    			x = Math.round x
-
-    			y = board.height-h
-
-    			board.opponent.addGroup(new BlockGroup(x,y,w,h))
-
-    		# board.on 'chainComplete', (chain)->
-    		# 	return if chain <= 2
-
-    		# 	w = board.width
-    		# 	h = chain - 1
-
-    		# 	x = Math.random() * (board.width - w)
-    		# 	x = Math.round x
-
-    		# 	y = board.height-h
-
-    		# 	board.opponent.addGroup(new BlockGroup(x,y,w,h))
-
-    		board.on 'loss', ->
-    			board.opponent.stop()
-
-
-
 
     ############################################
     ## Game Class singleton
@@ -263,7 +192,7 @@ root = if window? then window else this
     		renderer: {}
 
     	## Initialize game
-    	constructor: (mode='multi')->
+    	constructor: (settings={})->
     		super
 
     		zz.game = this
@@ -272,15 +201,22 @@ root = if window? then window else this
 
     		@ticker.on 'tick', => @loop()
 
-    		@mode = new zz.modes[mode]
-
-    		@boards = @mode.initBoards()
+    		@initBoards()
 
     		@renderer = new CanvasRenderer(this)
     		@controllers = (new EventController(b) for b in @boards)
     		@soundsControllers = (new SoundController(b) for b in @boards)
 
-    	initBoards: ->
+    	initBoards: (players=2)->
+    		if players == 1
+    			@boards = [new Board(0)]
+    			return
+
+    		if players == 2
+    			@boards = [new Board(0), new Board(1)]
+    			@boards[0].opponent = @boards[1]
+    			@boards[1].opponent = @boards[0]
+
 
     	## Start Ticker and game
     	start: ->
@@ -397,169 +333,39 @@ root = if window? then window else this
 
 
 
-    # class DomRenderer extends zz.class.renderer
-
-    #     blockSize: 50
-
-    #     offset: 0
-
-    #     colors: [
-    #         'red', 
-    #         'blue',
-    #         'green', 
-    #         'yellow',
-    #         'purple',
-    #     ]
-
-
-    #     constructor: (@game)->
-    #         throw 'JQuery Not found' unless $?
-
-    #         @board = @game.boards[0]
-    #         $ => @setUpElement()
-
-    #         @board.on 'swap', (b1, b2)=>
-    #             b1.swapping =  1 if b1?
-    #             b2.swapping = -1 if b2?
-
-    #         @board.on 'match', (matches)=>
-    #             for sets in matches
-    #                 for block in sets
-    #                     block.matched = 0
-
-    #     setUpElement: ()->
-    #         @element = $ '#puzzle'
-    #         @element.width  @board.width  * @blockSize
-    #         @element.height @board.height * @blockSize
-
-    #     render: ()-> 
-    #         @offset = 1.0*@board.counter/@board.speed * @blockSize
-
-    #         @renderBoard @board
-    #         @renderBlock b for b in @board.blocks
-    #         @renderCursor @board.cursor
-    #         @renderScore()
-
-    #     renderBoard: (board)->
-    #         @element.find('.block').remove()
-
-    #     renderCursor: (cursor) ->
-    #         @element.find('.cursor').remove()
-    #         el = $ '<div></div>', class: 'cursor'
-    #             .appendTo @element
-
-    #         el.width @blockSize * 2
-    #         el.height @blockSize * 1
-
-    #         el.css
-    #             bottom: cursor.y * @blockSize + @offset
-    #             left: cursor.x * @blockSize
-
-    #     renderBlock: (block)->
-    #         return unless block?
-    #         offset = 0 
-    #         if block.swapping?
-    #             offset = block.swapping+=25 if block.swapping > 0
-    #             offset = block.swapping-=25 if block.swapping < 0
-
-    #             if block.swapping <= -@blockSize or block.swapping >= @blockSize
-    #                 @board.done 'swap'
-    #                 delete block.swapping
-    #                 offset = 0
-
-    #         el = $ '<div></div>', 
-    #             class: 'block'
-    #         .appendTo @element
-
-    #         if block.matched?
-    #             el.addClass('matched')
-    #             block.matched++
-
-    #             if block.matched > 10
-    #                 delete block.matched
-    #                 @board.done 'match'
-
-    #         el.width @blockSize
-    #         el.height @blockSize
-
-    #         if block.y < 0 
-    #             el.css opacity: 0.5
-
-    #         el.css 
-    #             bottom: block.y * @blockSize + @offset
-    #             left:   block.x * @blockSize + offset
-    #             background: @colors[block.color]
-
-
-    #     renderScore: ->
-    #         $ '#score' 
-    #             .html @board.score
-
-
-
-
-
+    ## Main Rendering Class
     class CanvasBoardRenderer extends BoardRenderer
 
-        colors: [
-            'grey', 
-            'blue',
-            'green', 
-            'yellow',
-            'orange',
-            'red',
-        ]
-
+        #################################
+        ## Init Functions
+        #################################
         init: ()->
-            $("#puzzle-#{@board.id}").attr
+
+            @id  = "puzzle-#{@board.id}"
+
+            ## Set up board size
+            $("##{@id}").attr
                 width: @board.width * @size
                 height: @board.height * @size
             .show()
 
-            @stage = new createjs.Stage("puzzle-#{@board.id}")
+            @stage = new createjs.Stage @id
 
             @loadSprites()
-            ## Set up animations
-            # @animation 'swap', @swapAnimation, 100
-            @board.on 'swap', (blocks)=>
-                @swapAnimation blocks
+            
+            @animate 'swap'
+            @animate 'match'
+            @animate 'loss'
+            @animate 'dispersal'
+            @animate 'addGroup'
 
-            @board.on 'match', (matches)=>
-                @matchAnimation matches
-
-            @board.on 'remove', (block)=>
-                @stage.removeChild block.s 
-
-            @board.on 'dispersal', (args)=>
-                @dispersalAnimation (args)
-
-            @board.on 'groupMove', (args)=>
-                @groupMoveAnimation (args)
-
-            @board.on 'scoring', (args)=>
-                @scoringAnimation(args)
-
-            @board.on 'loss', (args)=>
-                @lossAnimation()
-
-        initBackground: ()->
-            @background = new createjs.Shape()
-            @background.graphics
-                # .beginFill 'black'
-                .drawRect 0, 0, @size * @board.width, @size * @board.height
-
-            @stage.addChildAt @background, 0 
+            @board.on 'remove', (b)=>
+                @stage.removeChild b
 
         initBlock: (block)->
             block.s = new createjs.Sprite @sprites[block.color], 'still'
+
             @release block
-
-            # color = if block.color then @colors[block.color] else 'gray'
-
-            # block.s.graphics
-                # .beginFill color
-                # .drawRect 0, 0, @size, @size
-
             @renderBlock block
 
             @stage.addChildAt block.s, @stage.children.length - 1, 
@@ -575,6 +381,9 @@ root = if window? then window else this
 
             @stage.addChild cursor.s
 
+        #################################
+        ## Render / Update functions
+        #################################
         render: ()->
             super
             @stage.update()
@@ -597,6 +406,31 @@ root = if window? then window else this
             if (@board.id == 0)
                 $('#score').html(@board.score)
 
+        #################################
+        # Animations
+        #################################
+        animate: (event)->
+            @board.on event, =>
+                this[event+'Animation'].apply(this, arguments)
+
+        after: (length, fn)-> setTimeout fn, length
+        
+        ## 
+        # 'Holds' a block, not letting it update it's position 
+        hold: (obj)-> 
+            return (@hold o for o in arguments) if arguments.length > 1?
+            return unless obj?
+            return (@hold o for o in obj) if obj.length? and obj.length > 1?
+            obj._stop = true
+
+        ##
+        # Releases a block so its position is updated
+        release: (obj)-> 
+            return (@release o for o in arguments) if arguments.length > 1?
+            return unless obj?
+            return (@release o for o in obj) if obj.length? and obj.length > 1?
+            obj._stop = false
+            
         swapAnimation: (blocks)->
             length = 100
 
@@ -613,11 +447,10 @@ root = if window? then window else this
             t1 = createjs.Tween.get(b1.s).to(x: b1.s.x+@size, length, ease) if b1?
             t2 = createjs.Tween.get(b2.s).to(x: b2.s.x-@size, length, ease) if b2?   
 
-            setTimeout =>
+            @after length, =>
                 @release b1, b2
                 @board.done 'swap'
             , length
-
 
         matchAnimation: (matches)->
             length = 750
@@ -633,11 +466,10 @@ root = if window? then window else this
                 for block in set
                     each(block)
 
-            setTimeout =>
+            @after length, =>
                 @board.continue()
                 @release set for set in matches
                 @board.done 'match'
-            , length
 
         dispersalAnimation: (args)->
 
@@ -647,51 +479,33 @@ root = if window? then window else this
             perLength = 100
             length = perLength * (newBlocks.length+1)
 
-            @board.pause()
-
             @hold oldBlocks
 
             for b, i in newBlocks
-                fn = ((b1, b2)=>
-                    return => 
-                        @initBlock b1
-                        @stage.removeChild b2
-                )(b, oldBlocks[i])
+                fn = ((b)=>
+                    return => @initBlock b
+                )(b)
 
                 setTimeout fn, i*perLength
 
-
-            #     setTimeout =>
-            #         @initBlock newBlocks[i]
-            #         @stage.removeChild newBlocks[i].s
-            #     , i * 100
-
-            # for b, i in oldBlocks.blocks
-                # @stage.removeChild b.s
-                # b.s = newBlocks[i].s
-                # b.s.graphics.beginFill(/'red').drawRect(20,20)
-
-            setTimeout =>
+            @after length, =>
+                @stage.removeChild(b.s) for b in oldBlocks
                 @board.done 'dispersal'
-                @board.continue()
-            ,length
 
-        groupMoveAnimation: (args)->
-            length = 300
-
-            group = args[0]
-            distance = args[1]
+        addGroupAnimation: (group)->
+            length = 1000
 
             for b in group.blocks
                 @initBlock b unless b.s
-                @hold(b)
-                pos = @toPos(b).y + distance * @size + @offset()
-                createjs.Tween.get(b.s).to({y: pos}, length, createjs.Ease.sinIn)
+                @renderBlock b 
+                @hold b
+                # pos = @toPos(b).y * @size + @offset()
+                tmp = b.s.y
+                b.s.y = tmp - @size * @board.height - group.h
+                createjs.Tween.get(b.s).to({y: tmp}, length, createjs.Ease.bounceOut)
 
-            setTimeout =>
+            @after length, =>
                 @release b for b in group.blocks
-                @board.done 'groupMove'
-            , length
 
 
         scoringAnimation: (args)->
@@ -718,23 +532,12 @@ root = if window? then window else this
 
         lossAnimation: ->
             for b in @board.blocks
-                @hold b 
+                # @hold b 
                 b.color = 0
                 @stage.removeChild b.s
                 @initBlock b
+                b.s.gotoAndPlay 'lost'
 
-
-        hold: (obj)-> 
-            return (@hold o for o in arguments) if arguments.length > 1?
-            return unless obj?
-            return (@hold o for o in obj) if obj.length? and obj.length > 1?
-            obj._stop = true
-
-        release: (obj)-> 
-            return (@release o for o in arguments) if arguments.length > 1?
-            return unless obj?
-            return (@release o for o in obj) if obj.length? and obj.length > 1?
-            obj._stop = false
 
         loadSprites: ()->
             @sprites = []
@@ -745,17 +548,24 @@ root = if window? then window else this
 
                 animations:
                     still: 5
+                    fillIn: [0,1,2,3,4,5]
+                    fillOut: [5,4,3,2,1,0]
                     matching: 
-                        frames: (i for i in [5..1]).concat (i for i in [1..5])
+                        frames: [0,1,2,3,4,5,4,3,2,1]
                         # next: 'matched'
                         speed: 0.75
                     matched: 0
+                    lost: 
+                        frames: [5,4,3,2,1,0]
+                        next: 'matched'
+                        speed: 0.1
 
-            data.animations.still = 0 
+
+            # data.animations.still = 0 
             data.images = ["assets/sprites/grey.png"]
             @sprites.push new createjs.SpriteSheet data
 
-            data.animations.still = 5
+            # data.animations.still = 5
             data.images = ["assets/sprites/green.png"]
             @sprites.push new createjs.SpriteSheet data
 
@@ -771,7 +581,15 @@ root = if window? then window else this
             data.images = ["assets/sprites/purple.png"]
             @sprites.push new createjs.SpriteSheet data
 
-            
+
+    class Animation
+
+        constructor: (@parent, @length)->
+
+        run: ()->
+
+        callback: ()->
+
     class CanvasRenderer extends Renderer
 
         boardRenderer: CanvasBoardRenderer
@@ -903,6 +721,8 @@ root = if window? then window else this
             ## initial score
             @score = 0
 
+            @opponent = null
+
             ## Set up easy grid getter
             Object.defineProperty this, 'grid', get: => @blockArray()
 
@@ -1015,7 +835,9 @@ root = if window? then window else this
         # Add a group and the groups blocks
         addGroup: (group)->
             @groups.push group
-            @addBlocks group.blocks
+            @blocks.push b for b in group.blocks
+            @updateGrid()
+            @emit 'addGroup', group
 
         ##
         # Add a blocks and update the grid
@@ -1039,7 +861,7 @@ root = if window? then window else this
         ## 
         # Triggered on loss of game
         lose: ->
-            @stop()
+            @pause()
             @emit 'loss', this
 
         ## 
@@ -1106,6 +928,7 @@ root = if window? then window else this
         # Checks two blocks for a match
         checkBlocks: (b1, b2)->
             return false unless b1? and b2?
+            return false unless b1.canMatch and b2.canMatch
             return false unless b1.color and b2.color
             b1.color == b2.color
 
@@ -1123,7 +946,6 @@ root = if window? then window else this
         # Clears a list of blocks
         clearBlocks: (blocks)->
             blocks = [blocks] unless blocks.length
-
             for b in blocks
                 @emit 'remove', b
                 @blocks.remove(b)
@@ -1148,9 +970,12 @@ root = if window? then window else this
 
             newBlocks = (new Block(block.x, block.y) for block in group.blocks)
 
+            @pause()
+
             @queue 'dispersal', {oldBlocks: group.blocks, newBlocks: newBlocks}, ()=>
                 @addBlocks newBlocks
                 @clearBlocks group.blocks
+                @continue()
             
         ## 
         # Calculates the score for a match set
@@ -1191,12 +1016,14 @@ root = if window? then window else this
             ## End of chain
             else if matches.length == 0 and score > 0 
                 @score += score * chain
+                @sendBlocks score * chain
                 return
 
             ## Hold blocks in match
             for set in matches
                 for block in set
                     block.canSwap = false
+                    block.canMatch = false
 
             @queue 'match', matches, =>
                 score += @clearMatches matches
@@ -1221,6 +1048,7 @@ root = if window? then window else this
                         y--
 
         groupFallDown: ->
+            grid = @grid
             ## Fall Down Groups
             for group in @groups
 
@@ -1238,6 +1066,34 @@ root = if window? then window else this
                 #         @checkLoss()
                 # else 
                 group.moveAll 0, -minDist
+                group.activate()
+
+
+        sendBlocks: (score)->
+            return unless @opponent?
+            # return if score < 50
+
+            shapes = 
+                20:  [7,3]
+                100: [3,2]
+                150: [7,2]
+                200: [3,3]
+                300: [7,3]
+
+
+            for thresh, dim of shapes
+                if score >= Number(thresh)
+                    w = dim[0]
+                    h = dim[1]
+
+            x = Math.random() * (@opponent.width - w)
+            x = Math.round x
+
+            y = @opponent.height-h
+
+            @opponent.addGroup new BlockGroup(x,y,w,h)
+
+
 
     ############################################
     ## Block class for each block on the grid
@@ -1249,8 +1105,9 @@ root = if window? then window else this
     	constructor: (@x, @y)->
     		@canSwap = true
     		@canLose = true
+    		@canMatch = true
     		@color = @randomColor()
-    		super
+    		super @x, @y
 
     	randomColor: ->
     		Math.round(Math.random()*@colors)%@colors + 1
@@ -1259,14 +1116,15 @@ root = if window? then window else this
     class GrayBlock extends Block
 
     	constructor: (@x, @y, @group)->
-    		super @x,@y
+    		super @x, @y
 
     		@color = 0
-    		@canSwap = 0
+    		@canSwap = false
+    		@canMatch = false
 
     		# Block must fall down before 
     		# it can be counted against lost
-    		@canLose = 0 
+    		@canLose = false
 
     ############################################
     ##  Big Block
@@ -1285,10 +1143,11 @@ root = if window? then window else this
     		@bottom = []
 
     		forall @w, @h, (i,j)=>
-    			b = new GrayBlock @x + i, @y + j this
+    			b = new GrayBlock @x + i, @y + j, this
 
     			@bottom.push b if (j == 0)
     			@blocks.push b
+
 
     	moveAll: (x,y)->
     		b.move(x,y) for b in @blocks

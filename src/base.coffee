@@ -36,11 +36,12 @@ zz.class.base = class Base
 
 	done: (event, args)->
 		return unless @_queue[event]?
-		fn = @_queue[event]
-		@_queue[event] = null
+		fn = @_queue[event].shift()
+		return unless fn?
 		fn.call this, args
 
 	queue: (event, args, fn)->
-		@_queue[event] = fn
+		@_queue[event] = [] unless @_queue[event]?
+		@_queue[event].push fn
 		@emit event, args
 

@@ -27,6 +27,8 @@ zz.class.board = class Board extends zz.class.base
         ## initial score
         @score = 0
 
+        @opponent = null
+
         ## Set up easy grid getter
         Object.defineProperty this, 'grid', get: => @blockArray()
 
@@ -139,7 +141,9 @@ zz.class.board = class Board extends zz.class.base
     # Add a group and the groups blocks
     addGroup: (group)->
         @groups.push group
-        @addBlocks group.blocks
+        @blocks.push b for b in group.blocks
+        @updateGrid()
+        @emit 'addGroup', group
 
     ##
     # Add a blocks and update the grid
@@ -163,7 +167,7 @@ zz.class.board = class Board extends zz.class.base
     ## 
     # Triggered on loss of game
     lose: ->
-        @stop()
+        @pause()
         @emit 'loss', this
 
     ## 
@@ -230,6 +234,7 @@ zz.class.board = class Board extends zz.class.base
     # Checks two blocks for a match
     checkBlocks: (b1, b2)->
         return false unless b1? and b2?
+        return false unless b1.canMatch and b2.canMatch
         return false unless b1.color and b2.color
         b1.color == b2.color
 
@@ -247,7 +252,6 @@ zz.class.board = class Board extends zz.class.base
     # Clears a list of blocks
     clearBlocks: (blocks)->
         blocks = [blocks] unless blocks.length
-
         for b in blocks
             @emit 'remove', b
             @blocks.remove(b)
@@ -272,9 +276,12 @@ zz.class.board = class Board extends zz.class.base
 
         newBlocks = (new Block(block.x, block.y) for block in group.blocks)
 
+        @pause()
+
         @queue 'dispersal', {oldBlocks: group.blocks, newBlocks: newBlocks}, ()=>
             @addBlocks newBlocks
             @clearBlocks group.blocks
+            @continue()
         
     ## 
     # Calculates the score for a match set
@@ -315,12 +322,14 @@ zz.class.board = class Board extends zz.class.base
         ## End of chain
         else if matches.length == 0 and score > 0 
             @score += score * chain
+            @sendBlocks score * chain
             return
 
         ## Hold blocks in match
         for set in matches
             for block in set
                 block.canSwap = false
+                block.canMatch = false
 
         @queue 'match', matches, =>
             score += @clearMatches matches
@@ -345,6 +354,7 @@ zz.class.board = class Board extends zz.class.base
                     y--
 
     groupFallDown: ->
+        grid = @grid
         ## Fall Down Groups
         for group in @groups
 
@@ -362,3 +372,31 @@ zz.class.board = class Board extends zz.class.base
             #         @checkLoss()
             # else 
             group.moveAll 0, -minDist
+            group.activate()
+
+
+    sendBlocks: (score)->
+        return unless @opponent?
+        # return if score < 50
+
+        shapes = 
+            20:  [7,3]
+            100: [3,2]
+            150: [7,2]
+            200: [3,3]
+            300: [7,3]
+
+
+        for thresh, dim of shapes
+            if score >= Number(thresh)
+                w = dim[0]
+                h = dim[1]
+
+        x = Math.random() * (@opponent.width - w)
+        x = Math.round x
+
+        y = @opponent.height-h
+
+        @opponent.addGroup new BlockGroup(x,y,w,h)
+
+

@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, Controller, EventController, Game, GrayBlock, Manager, MultiPlayer, Positional, Renderer, SinglePlayer, SoundController, Ticker, forall, zz;
+    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, Controller, EventController, Game, GrayBlock, Manager, Positional, Renderer, SoundController, Ticker, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -102,13 +102,18 @@
         if (this._queue[event] == null) {
           return;
         }
-        fn = this._queue[event];
-        this._queue[event] = null;
+        fn = this._queue[event].shift();
+        if (fn == null) {
+          return;
+        }
         return fn.call(this, args);
       };
 
       Base.prototype.queue = function(event, args, fn) {
-        this._queue[event] = fn;
+        if (this._queue[event] == null) {
+          this._queue[event] = [];
+        }
+        this._queue[event].push(fn);
         return this.emit(event, args);
       };
 
@@ -209,80 +214,6 @@
       return Ticker;
 
     })(Base);
-    zz.modes = {};
-    zz.modes.single = SinglePlayer = (function(superClass) {
-      extend(SinglePlayer, superClass);
-
-      function SinglePlayer() {
-        return SinglePlayer.__super__.constructor.apply(this, arguments);
-      }
-
-      SinglePlayer.prototype.initBoards = function() {
-        return [new Board(0)];
-      };
-
-      return SinglePlayer;
-
-    })(Base);
-    zz.modes.multi = MultiPlayer = (function(superClass) {
-      extend(MultiPlayer, superClass);
-
-      function MultiPlayer() {
-        return MultiPlayer.__super__.constructor.apply(this, arguments);
-      }
-
-      MultiPlayer.prototype.initBoards = function() {
-        var b, boards, k, len;
-        boards = [new Board(0), new Board(1)];
-        boards[0].opponent = boards[1];
-        boards[1].opponent = boards[0];
-        for (k = 0, len = boards.length; k < len; k++) {
-          b = boards[k];
-          this.setUpEvents(b);
-        }
-        return boards;
-      };
-
-      MultiPlayer.prototype.setUpEvents = function(board) {
-        board.on('score', function(score) {
-          var h, w, x, y;
-          console.log(score);
-          if (score < 50) {
-            return;
-          }
-          if (score >= 50) {
-            w = 2;
-            h = 2;
-          }
-          if (score >= 100) {
-            w = 7;
-            h = 1;
-          }
-          if (score >= 150) {
-            w = 5;
-            h = 2;
-          }
-          if (score >= 200) {
-            w = 7;
-            h = 2;
-          }
-          if (score >= 300) {
-            w = 7;
-            h = 3;
-          }
-          x = Math.random() * (board.width - w);
-          x = Math.round(x);
-          y = board.height - h;
-          return board.opponent.addGroup(new BlockGroup(x, y, w, h));
-        });
-        return board.on('loss', function() {
-          return board.opponent.stop();
-        });
-      };
-
-      return MultiPlayer;
-
-    })(Base);
     zz["class"].game = Game = (function(superClass) {
       extend(Game, superClass);
 
@@ -292,10 +223,10 @@
         renderer: {}
       };
 
-      function Game(mode) {
+      function Game(settings) {
         var b;
-        if (mode == null) {
-          mode = 'multi';
+        if (settings == null) {
+          settings = {};
         }
         Game.__super__.constructor.apply(this, arguments);
         zz.game = this;
@@ -305,8 +236,7 @@
             return _this.loop();
           };
         })(this));
-        this.mode = new zz.modes[mode];
-        this.boards = this.mode.initBoards();
+        this.initBoards();
         this.renderer = new CanvasRenderer(this);
         this.controllers = (function() {
           var k, len, ref, results;
@@ -330,7 +260,20 @@
         }).call(this);
       }
 
-      Game.prototype.initBoards = function() {};
+      Game.prototype.initBoards = function(players) {
+        if (players == null) {
+          players = 2;
+        }
+        if (players === 1) {
+          this.boards = [new Board(0)];
+          return;
+        }
+        if (players === 2) {
+          this.boards = [new Board(0), new Board(1)];
+          this.boards[0].opponent = this.boards[1];
+          return this.boards[1].opponent = this.boards[0];
+        }
+      };
 
       Game.prototype.start = function() {
         this.emit('start');
@@ -510,56 +453,24 @@
         return CanvasBoardRenderer.__super__.constructor.apply(this, arguments);
       }
 
-      CanvasBoardRenderer.prototype.colors = ['grey', 'blue', 'green', 'yellow', 'orange', 'red'];
-
       CanvasBoardRenderer.prototype.init = function() {
-        $("#puzzle-" + this.board.id).attr({
+        this.id = "puzzle-" + this.board.id;
+        $("#" + this.id).attr({
           width: this.board.width * this.size,
           height: this.board.height * this.size
         }).show();
-        this.stage = new createjs.Stage("puzzle-" + this.board.id);
+        this.stage = new createjs.Stage(this.id);
         this.loadSprites();
-        this.board.on('swap', (function(_this) {
-          return function(blocks) {
-            return _this.swapAnimation(blocks);
+        this.animate('swap');
+        this.animate('match');
+        this.animate('loss');
+        this.animate('dispersal');
+        this.animate('addGroup');
+        return this.board.on('remove', (function(_this) {
+          return function(b) {
+            return _this.stage.removeChild(b);
           };
         })(this));
-        this.board.on('match', (function(_this) {
-          return function(matches) {
-            return _this.matchAnimation(matches);
-          };
-        })(this));
-        this.board.on('remove', (function(_this) {
-          return function(block) {
-            return _this.stage.removeChild(block.s);
-          };
-        })(this));
-        this.board.on('dispersal', (function(_this) {
-          return function(args) {
-            return _this.dispersalAnimation(args);
-          };
-        })(this));
-        this.board.on('groupMove', (function(_this) {
-          return function(args) {
-            return _this.groupMoveAnimation(args);
-          };
-        })(this));
-        this.board.on('scoring', (function(_this) {
-          return function(args) {
-            return _this.scoringAnimation(args);
-          };
-        })(this));
-        return this.board.on('loss', (function(_this) {
-          return function(args) {
-            return _this.lossAnimation();
-          };
-        })(this));
-      };
-
-      CanvasBoardRenderer.prototype.initBackground = function() {
-        this.background = new createjs.Shape();
-        this.background.graphics.drawRect(0, 0, this.size * this.board.width, this.size * this.board.height);
-        return this.stage.addChildAt(this.background, 0);
       };
 
       CanvasBoardRenderer.prototype.initBlock = function(block) {
@@ -606,160 +517,16 @@
         }
       };
 
-      CanvasBoardRenderer.prototype.swapAnimation = function(blocks) {
-        var b1, b2, ease, length, t1, t2;
-        length = 100;
-        b1 = blocks[0];
-        b2 = blocks[1];
-        this.hold(b1, b2);
-        ease = createjs.Ease.linear;
-        if (((b1 != null) && (b2 == null)) || ((b2 != null) && (b1 == null))) {
-          length += 100;
-          ease = createjs.Ease.quadOut;
-        }
-        if (b1 != null) {
-          t1 = createjs.Tween.get(b1.s).to({
-            x: b1.s.x + this.size
-          }, length, ease);
-        }
-        if (b2 != null) {
-          t2 = createjs.Tween.get(b2.s).to({
-            x: b2.s.x - this.size
-          }, length, ease);
-        }
-        return setTimeout((function(_this) {
+      CanvasBoardRenderer.prototype.animate = function(event) {
+        return this.board.on(event, (function(_this) {
           return function() {
-            _this.release(b1, b2);
-            return _this.board.done('swap');
-          };
-        })(this), length);
-      };
-
-      CanvasBoardRenderer.prototype.matchAnimation = function(matches) {
-        var block, each, k, l, len, len1, length, set;
-        length = 750;
-        this.board.pause();
-        this.render();
-        each = (function(_this) {
-          return function(b) {
-            b.t = createjs.Tween.get(b.s).wait(length * .75).to({
-              alpha: 0
-            }, length * .25);
-            return b.s.gotoAndPlay('matching');
-          };
-        })(this);
-        for (k = 0, len = matches.length; k < len; k++) {
-          set = matches[k];
-          this.hold(set);
-          for (l = 0, len1 = set.length; l < len1; l++) {
-            block = set[l];
-            each(block);
-          }
-        }
-        return setTimeout((function(_this) {
-          return function() {
-            var len2, n;
-            _this.board["continue"]();
-            for (n = 0, len2 = matches.length; n < len2; n++) {
-              set = matches[n];
-              _this.release(set);
-            }
-            return _this.board.done('match');
-          };
-        })(this), length);
-      };
-
-      CanvasBoardRenderer.prototype.dispersalAnimation = function(args) {
-        var b, fn, i, k, len, length, newBlocks, oldBlocks, perLength;
-        oldBlocks = args.oldBlocks;
-        newBlocks = args.newBlocks;
-        perLength = 100;
-        length = perLength * (newBlocks.length + 1);
-        this.board.pause();
-        this.hold(oldBlocks);
-        for (i = k = 0, len = newBlocks.length; k < len; i = ++k) {
-          b = newBlocks[i];
-          fn = ((function(_this) {
-            return function(b1, b2) {
-              return function() {
-                _this.initBlock(b1);
-                return _this.stage.removeChild(b2);
-              };
-            };
-          })(this))(b, oldBlocks[i]);
-          setTimeout(fn, i * perLength);
-        }
-        return setTimeout((function(_this) {
-          return function() {
-            _this.board.done('dispersal');
-            return _this.board["continue"]();
-          };
-        })(this), length);
-      };
-
-      CanvasBoardRenderer.prototype.groupMoveAnimation = function(args) {
-        var b, distance, group, k, len, length, pos, ref;
-        length = 300;
-        group = args[0];
-        distance = args[1];
-        ref = group.blocks;
-        for (k = 0, len = ref.length; k < len; k++) {
-          b = ref[k];
-          if (!b.s) {
-            this.initBlock(b);
-          }
-          this.hold(b);
-          pos = this.toPos(b).y + distance * this.size + this.offset();
-          createjs.Tween.get(b.s).to({
-            y: pos
-          }, length, createjs.Ease.sinIn);
-        }
-        return setTimeout((function(_this) {
-          return function() {
-            var l, len1, ref1;
-            ref1 = group.blocks;
-            for (l = 0, len1 = ref1.length; l < len1; l++) {
-              b = ref1[l];
-              _this.release(b);
-            }
-            return _this.board.done('groupMove');
-          };
-        })(this), length);
-      };
-
-      CanvasBoardRenderer.prototype.scoringAnimation = function(args) {
-        var chain, colors, pos, score, set, text;
-        chain = args[0] - 1;
-        score = args[1];
-        set = args[2];
-        colors = ["#fff", '#35B13F', '#F7DB01', '#F7040A', '#4AF7ED'];
-        text = new createjs.Text("" + score, "20px Montserrat", colors[chain]);
-        pos = this.toPos(set[0]);
-        text.x = pos.x + this.size / 2;
-        text.y = pos.y;
-        createjs.Tween.get(text).to({
-          y: pos.y - this.size * 2,
-          alpha: 0.0
-        }, 1000).call((function(_this) {
-          return function() {
-            return _this.stage.removeChild(text);
+            return _this[event + 'Animation'].apply(_this, arguments);
           };
         })(this));
-        return this.stage.addChild(text);
       };
 
-      CanvasBoardRenderer.prototype.lossAnimation = function() {
-        var b, k, len, ref, results;
-        ref = this.board.blocks;
-        results = [];
-        for (k = 0, len = ref.length; k < len; k++) {
-          b = ref[k];
-          this.hold(b);
-          b.color = 0;
-          this.stage.removeChild(b.s);
-          results.push(this.initBlock(b));
-        }
-        return results;
+      CanvasBoardRenderer.prototype.after = function(length, fn) {
+        return setTimeout(fn, length);
       };
 
       CanvasBoardRenderer.prototype.hold = function(obj) {
@@ -822,8 +589,167 @@
         return obj._stop = false;
       };
 
+      CanvasBoardRenderer.prototype.swapAnimation = function(blocks) {
+        var b1, b2, ease, length, t1, t2;
+        length = 100;
+        b1 = blocks[0];
+        b2 = blocks[1];
+        this.hold(b1, b2);
+        ease = createjs.Ease.linear;
+        if (((b1 != null) && (b2 == null)) || ((b2 != null) && (b1 == null))) {
+          length += 100;
+          ease = createjs.Ease.quadOut;
+        }
+        if (b1 != null) {
+          t1 = createjs.Tween.get(b1.s).to({
+            x: b1.s.x + this.size
+          }, length, ease);
+        }
+        if (b2 != null) {
+          t2 = createjs.Tween.get(b2.s).to({
+            x: b2.s.x - this.size
+          }, length, ease);
+        }
+        return this.after(length, (function(_this) {
+          return function() {
+            _this.release(b1, b2);
+            return _this.board.done('swap');
+          };
+        })(this), length);
+      };
+
+      CanvasBoardRenderer.prototype.matchAnimation = function(matches) {
+        var block, each, k, l, len, len1, length, set;
+        length = 750;
+        this.board.pause();
+        this.render();
+        each = (function(_this) {
+          return function(b) {
+            b.t = createjs.Tween.get(b.s).wait(length * .75).to({
+              alpha: 0
+            }, length * .25);
+            return b.s.gotoAndPlay('matching');
+          };
+        })(this);
+        for (k = 0, len = matches.length; k < len; k++) {
+          set = matches[k];
+          this.hold(set);
+          for (l = 0, len1 = set.length; l < len1; l++) {
+            block = set[l];
+            each(block);
+          }
+        }
+        return this.after(length, (function(_this) {
+          return function() {
+            var len2, n;
+            _this.board["continue"]();
+            for (n = 0, len2 = matches.length; n < len2; n++) {
+              set = matches[n];
+              _this.release(set);
+            }
+            return _this.board.done('match');
+          };
+        })(this));
+      };
+
+      CanvasBoardRenderer.prototype.dispersalAnimation = function(args) {
+        var b, fn, i, k, len, length, newBlocks, oldBlocks, perLength;
+        oldBlocks = args.oldBlocks;
+        newBlocks = args.newBlocks;
+        perLength = 100;
+        length = perLength * (newBlocks.length + 1);
+        this.hold(oldBlocks);
+        for (i = k = 0, len = newBlocks.length; k < len; i = ++k) {
+          b = newBlocks[i];
+          fn = ((function(_this) {
+            return function(b) {
+              return function() {
+                return _this.initBlock(b);
+              };
+            };
+          })(this))(b);
+          setTimeout(fn, i * perLength);
+        }
+        return this.after(length, (function(_this) {
+          return function() {
+            var l, len1;
+            for (l = 0, len1 = oldBlocks.length; l < len1; l++) {
+              b = oldBlocks[l];
+              _this.stage.removeChild(b.s);
+            }
+            return _this.board.done('dispersal');
+          };
+        })(this));
+      };
+
+      CanvasBoardRenderer.prototype.addGroupAnimation = function(group) {
+        var b, k, len, length, ref, tmp;
+        length = 1000;
+        ref = group.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          if (!b.s) {
+            this.initBlock(b);
+          }
+          this.renderBlock(b);
+          this.hold(b);
+          tmp = b.s.y;
+          b.s.y = tmp - this.size * this.board.height - group.h;
+          createjs.Tween.get(b.s).to({
+            y: tmp
+          }, length, createjs.Ease.bounceOut);
+        }
+        return this.after(length, (function(_this) {
+          return function() {
+            var l, len1, ref1, results;
+            ref1 = group.blocks;
+            results = [];
+            for (l = 0, len1 = ref1.length; l < len1; l++) {
+              b = ref1[l];
+              results.push(_this.release(b));
+            }
+            return results;
+          };
+        })(this));
+      };
+
+      CanvasBoardRenderer.prototype.scoringAnimation = function(args) {
+        var chain, colors, pos, score, set, text;
+        chain = args[0] - 1;
+        score = args[1];
+        set = args[2];
+        colors = ["#fff", '#35B13F', '#F7DB01', '#F7040A', '#4AF7ED'];
+        text = new createjs.Text("" + score, "20px Montserrat", colors[chain]);
+        pos = this.toPos(set[0]);
+        text.x = pos.x + this.size / 2;
+        text.y = pos.y;
+        createjs.Tween.get(text).to({
+          y: pos.y - this.size * 2,
+          alpha: 0.0
+        }, 1000).call((function(_this) {
+          return function() {
+            return _this.stage.removeChild(text);
+          };
+        })(this));
+        return this.stage.addChild(text);
+      };
+
+      CanvasBoardRenderer.prototype.lossAnimation = function() {
+        var b, k, len, ref, results;
+        ref = this.board.blocks;
+        results = [];
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          b.color = 0;
+          this.stage.removeChild(b.s);
+          this.initBlock(b);
+          results.push(b.s.gotoAndPlay('lost'));
+        }
+        return results;
+      };
+
       CanvasBoardRenderer.prototype.loadSprites = function() {
-        var data, i;
+        var data;
         this.sprites = [];
         data = {
           frames: {
@@ -832,31 +758,22 @@
           },
           animations: {
             still: 5,
+            fillIn: [0, 1, 2, 3, 4, 5],
+            fillOut: [5, 4, 3, 2, 1, 0],
             matching: {
-              frames: ((function() {
-                var k, results;
-                results = [];
-                for (i = k = 5; k >= 1; i = --k) {
-                  results.push(i);
-                }
-                return results;
-              })()).concat((function() {
-                var k, results;
-                results = [];
-                for (i = k = 1; k <= 5; i = ++k) {
-                  results.push(i);
-                }
-                return results;
-              })()),
+              frames: [0, 1, 2, 3, 4, 5, 4, 3, 2, 1],
               speed: 0.75
             },
-            matched: 0
+            matched: 0,
+            lost: {
+              frames: [5, 4, 3, 2, 1, 0],
+              next: 'matched',
+              speed: 0.1
+            }
           }
         };
-        data.animations.still = 0;
         data.images = ["assets/sprites/grey.png"];
         this.sprites.push(new createjs.SpriteSheet(data));
-        data.animations.still = 5;
         data.images = ["assets/sprites/green.png"];
         this.sprites.push(new createjs.SpriteSheet(data));
         data.images = ["assets/sprites/orange.png"];
@@ -872,6 +789,19 @@
       return CanvasBoardRenderer;
 
     })(BoardRenderer);
+    Animation = (function() {
+      function Animation(parent, length1) {
+        this.parent = parent;
+        this.length = length1;
+      }
+
+      Animation.prototype.run = function() {};
+
+      Animation.prototype.callback = function() {};
+
+      return Animation;
+
+    })();
     CanvasRenderer = (function(superClass) {
       extend(CanvasRenderer, superClass);
 
@@ -1027,6 +957,7 @@
         this.blocks = [];
         this.groups = [];
         this.score = 0;
+        this.opponent = null;
         Object.defineProperty(this, 'grid', {
           get: (function(_this) {
             return function() {
@@ -1178,8 +1109,15 @@
       };
 
       Board.prototype.addGroup = function(group) {
+        var b, k, len, ref;
         this.groups.push(group);
-        return this.addBlocks(group.blocks);
+        ref = group.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          this.blocks.push(b);
+        }
+        this.updateGrid();
+        return this.emit('addGroup', group);
       };
 
       Board.prototype.addBlocks = function(blocks) {
@@ -1203,7 +1141,7 @@
       };
 
       Board.prototype.lose = function() {
-        this.stop();
+        this.pause();
         return this.emit('loss', this);
       };
 
@@ -1286,6 +1224,9 @@
         if (!((b1 != null) && (b2 != null))) {
           return false;
         }
+        if (!(b1.canMatch && b2.canMatch)) {
+          return false;
+        }
         if (!(b1.color && b2.color)) {
           return false;
         }
@@ -1346,13 +1287,15 @@
           }
           return results;
         })();
+        this.pause();
         return this.queue('dispersal', {
           oldBlocks: group.blocks,
           newBlocks: newBlocks
         }, (function(_this) {
           return function() {
             _this.addBlocks(newBlocks);
-            return _this.clearBlocks(group.blocks);
+            _this.clearBlocks(group.blocks);
+            return _this["continue"]();
           };
         })(this));
       };
@@ -1388,6 +1331,7 @@
           return;
         } else if (matches.length === 0 && score > 0) {
           this.score += score * chain;
+          this.sendBlocks(score * chain);
           return;
         }
         for (k = 0, len = matches.length; k < len; k++) {
@@ -1395,6 +1339,7 @@
           for (l = 0, len1 = set.length; l < len1; l++) {
             block = set[l];
             block.canSwap = false;
+            block.canMatch = false;
           }
         }
         return this.queue('match', matches, (function(_this) {
@@ -1440,7 +1385,8 @@
       };
 
       Board.prototype.groupFallDown = function() {
-        var block, d, distances, group, k, l, len, len1, minDist, ref, ref1, results;
+        var block, d, distances, grid, group, k, l, len, len1, minDist, ref, ref1, results;
+        grid = this.grid;
         ref = this.groups;
         results = [];
         for (k = 0, len = ref.length; k < len; k++) {
@@ -1456,9 +1402,35 @@
             distances.push(d);
           }
           minDist = distances.min() - 1;
-          results.push(group.moveAll(0, -minDist));
+          group.moveAll(0, -minDist);
+          results.push(group.activate());
         }
         return results;
+      };
+
+      Board.prototype.sendBlocks = function(score) {
+        var dim, h, shapes, thresh, w, x, y;
+        if (this.opponent == null) {
+          return;
+        }
+        shapes = {
+          20: [7, 3],
+          100: [3, 2],
+          150: [7, 2],
+          200: [3, 3],
+          300: [7, 3]
+        };
+        for (thresh in shapes) {
+          dim = shapes[thresh];
+          if (score >= Number(thresh)) {
+            w = dim[0];
+            h = dim[1];
+          }
+        }
+        x = Math.random() * (this.opponent.width - w);
+        x = Math.round(x);
+        y = this.opponent.height - h;
+        return this.opponent.addGroup(new BlockGroup(x, y, w, h));
       };
 
       return Board;
@@ -1474,8 +1446,9 @@
         this.y = y1;
         this.canSwap = true;
         this.canLose = true;
+        this.canMatch = true;
         this.color = this.randomColor();
-        Block.__super__.constructor.apply(this, arguments);
+        Block.__super__.constructor.call(this, this.x, this.y);
       }
 
       Block.prototype.randomColor = function() {
@@ -1494,8 +1467,9 @@
         this.group = group1;
         GrayBlock.__super__.constructor.call(this, this.x, this.y);
         this.color = 0;
-        this.canSwap = 0;
-        this.canLose = 0;
+        this.canSwap = false;
+        this.canMatch = false;
+        this.canLose = false;
       }
 
       return GrayBlock;
@@ -1516,7 +1490,7 @@
         forall(this.w, this.h, (function(_this) {
           return function(i, j) {
             var b;
-            b = new GrayBlock(_this.x + i, _this.y + j(_this));
+            b = new GrayBlock(_this.x + i, _this.y + j, _this);
             if (j === 0) {
               _this.bottom.push(b);
             }
