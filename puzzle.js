@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ColorBlock, Controller, EventController, Game, Manager, MultiPlayer, Positional, Renderer, SinglePlayer, SoundController, Ticker, forall, zz;
+    var Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, Controller, EventController, Game, GrayBlock, Manager, MultiPlayer, Positional, Renderer, SinglePlayer, SoundController, Ticker, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -639,6 +639,7 @@
         var block, each, k, l, len, len1, length, set;
         length = 750;
         this.board.pause();
+        this.render();
         each = (function(_this) {
           return function(b) {
             b.t = createjs.Tween.get(b.s).wait(length * .75).to({
@@ -1026,7 +1027,6 @@
         this.blocks = [];
         this.groups = [];
         this.score = 0;
-        this.stopped = false;
         Object.defineProperty(this, 'grid', {
           get: (function(_this) {
             return function() {
@@ -1050,70 +1050,14 @@
           })(this))()) {
           'do';
         }
-        this.cursor = new zz["class"].positional;
+        this.cursor = new Positional;
         this.cursor.limit([0, this.width - 2, 0, this.height - 2]);
         zz.game.ticker.on('tick', (function(_this) {
           return function() {
-            if (_this.stopped) {
-              return;
-            }
-            if (!_this.paused) {
-              _this.counter++;
-            }
-            if (_this.counter > _this.speed) {
-              _this.counter = 0;
-              _this.pushRow();
-              return _this.speed *= 0.95;
-            }
+            return _this.tick();
           };
         })(this));
       }
-
-      Board.prototype.checkLoss = function() {
-        var b, k, len, ref;
-        ref = this.blocks;
-        for (k = 0, len = ref.length; k < len; k++) {
-          b = ref[k];
-          if (b.y >= this.height - 1 && b.active) {
-            return this.lose();
-          }
-        }
-      };
-
-      Board.prototype.lose = function() {
-        this.stop();
-        return this.emit('loss', this);
-      };
-
-      Board.prototype.createRow = function(y) {
-        var k, ref, results, x;
-        results = [];
-        for (x = k = 0, ref = this.width - 1; 0 <= ref ? k <= ref : k >= ref; x = 0 <= ref ? ++k : --k) {
-          results.push(new ColorBlock(x, y));
-        }
-        return results;
-      };
-
-      Board.prototype.pushRow = function() {
-        var b, k, l, len, len1, ref, ref1;
-        ref = this.blocks;
-        for (k = 0, len = ref.length; k < len; k++) {
-          b = ref[k];
-          b.y++;
-        }
-        this.cursor.move(0, 1);
-        ref1 = this.createRow(-1);
-        for (l = 0, len1 = ref1.length; l < len1; l++) {
-          b = ref1[l];
-          this.blocks.push(b);
-        }
-        return this.update();
-      };
-
-      Board.prototype.addGroup = function(group) {
-        this.groups.push(group);
-        return this.addBlocks(group.blocks);
-      };
 
       Board.prototype.blockArray = function() {
         var b, k, len, ref;
@@ -1127,35 +1071,6 @@
           }
         }
         return this._blockArray;
-      };
-
-      Board.prototype.swap = function() {
-        var b1, b2, x;
-        b1 = this.grid[this.cursor.x][this.cursor.y];
-        b2 = this.grid[this.cursor.x + 1][this.cursor.y];
-        x = this.cursor.x;
-        if ((b1 != null) && !b1.canSwap) {
-          return;
-        }
-        if ((b2 != null) && !b2.canSwap) {
-          return;
-        }
-        return this.queue('swap', [b1, b2], (function(_this) {
-          return function() {
-            if (b1 != null) {
-              b1.x = x + 1;
-            }
-            if (b2 != null) {
-              b2.x = x;
-            }
-            return _this.update();
-          };
-        })(this));
-      };
-
-      Board.prototype.moveCursor = function(x, y) {
-        this.emit('cursorMove');
-        return this.cursor.move(x, y);
       };
 
       Board.prototype.getColumn = function(col) {
@@ -1218,6 +1133,136 @@
         })();
       };
 
+      Board.prototype.pause = function() {
+        return this.paused = true;
+      };
+
+      Board.prototype["continue"] = function() {
+        return this.paused = false;
+      };
+
+      Board.prototype.tick = function() {
+        if (!this.paused) {
+          this.counter++;
+        }
+        if (this.counter > this.speed) {
+          this.counter = 0;
+          this.pushRow();
+          return this.speed *= 0.95;
+        }
+      };
+
+      Board.prototype.pushRow = function() {
+        var b, k, l, len, len1, ref, ref1;
+        ref = this.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          b.y++;
+        }
+        this.cursor.move(0, 1);
+        ref1 = this.createRow(-1);
+        for (l = 0, len1 = ref1.length; l < len1; l++) {
+          b = ref1[l];
+          this.blocks.push(b);
+        }
+        return this.updateGrid();
+      };
+
+      Board.prototype.createRow = function(y) {
+        var k, ref, results, x;
+        results = [];
+        for (x = k = 0, ref = this.width - 1; 0 <= ref ? k <= ref : k >= ref; x = 0 <= ref ? ++k : --k) {
+          results.push(new Block(x, y));
+        }
+        return results;
+      };
+
+      Board.prototype.addGroup = function(group) {
+        this.groups.push(group);
+        return this.addBlocks(group.blocks);
+      };
+
+      Board.prototype.addBlocks = function(blocks) {
+        var b, k, len;
+        for (k = 0, len = blocks.length; k < len; k++) {
+          b = blocks[k];
+          this.blocks.push(b);
+        }
+        return this.updateGrid();
+      };
+
+      Board.prototype.checkLoss = function() {
+        var b, k, len, ref;
+        ref = this.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          if (b.y >= this.height - 1 && b.canLose) {
+            return this.lose();
+          }
+        }
+      };
+
+      Board.prototype.lose = function() {
+        this.stop();
+        return this.emit('loss', this);
+      };
+
+      Board.prototype.swap = function() {
+        var b1, b2, x;
+        x = this.cursor.x;
+        b1 = this.grid[x][this.cursor.y];
+        b2 = this.grid[x + 1][this.cursor.y];
+        if (!((b1 != null) || (b2 != null))) {
+          return;
+        }
+        if ((b1 != null) && !b1.canSwap) {
+          return;
+        }
+        if ((b2 != null) && !b2.canSwap) {
+          return;
+        }
+        return this.queue('swap', [b1, b2], (function(_this) {
+          return function() {
+            if (b1 != null) {
+              b1.x = x + 1;
+            }
+            if (b2 != null) {
+              b2.x = x;
+            }
+            return _this.updateGrid();
+          };
+        })(this));
+      };
+
+      Board.prototype.moveCursor = function(x, y) {
+        this.emit('cursorMove');
+        return this.cursor.move(x, y);
+      };
+
+      Board.prototype.getMatches = function() {
+        var a, col, k, l, len, len1, len2, len3, matches, n, p, ref, ref1, ref2, ref3, row;
+        matches = [];
+        ref = this.getRows();
+        for (k = 0, len = ref.length; k < len; k++) {
+          row = ref[k];
+          ref1 = this.checkRow(row);
+          for (l = 0, len1 = ref1.length; l < len1; l++) {
+            a = ref1[l];
+            matches.push(a);
+          }
+        }
+        ref2 = this.getColumns();
+        for (n = 0, len2 = ref2.length; n < len2; n++) {
+          col = ref2[n];
+          ref3 = this.checkRow(col);
+          for (p = 0, len3 = ref3.length; p < len3; p++) {
+            a = ref3[p];
+            matches.push(a);
+          }
+        }
+        return matches;
+      };
+
       Board.prototype.checkRow = function(row) {
         var b, match, sets;
         sets = [];
@@ -1247,65 +1292,14 @@
         return b1.color === b2.color;
       };
 
-      Board.prototype.getMatches = function() {
-        var a, col, k, l, len, len1, len2, len3, matches, n, p, ref, ref1, ref2, ref3, row;
-        matches = [];
-        ref = this.getRows();
-        for (k = 0, len = ref.length; k < len; k++) {
-          row = ref[k];
-          ref1 = this.checkRow(row);
-          for (l = 0, len1 = ref1.length; l < len1; l++) {
-            a = ref1[l];
-            matches.push(a);
-          }
-        }
-        ref2 = this.getColumns();
-        for (n = 0, len2 = ref2.length; n < len2; n++) {
-          col = ref2[n];
-          ref3 = this.checkRow(col);
-          for (p = 0, len3 = ref3.length; p < len3; p++) {
-            a = ref3[p];
-            matches.push(a);
-          }
-        }
-        return matches;
-      };
-
       Board.prototype.clearMatches = function(matches) {
-        var k, len, m, results;
-        results = [];
+        var k, len, m;
         for (k = 0, len = matches.length; k < len; k++) {
           m = matches[k];
           this.clearBlocks(m);
-          results.push(this.checkDisperse(m));
+          this.checkDisperse(m);
         }
-        return results;
-      };
-
-      Board.prototype.scoreMatches = function(chain, matches) {
-        var k, len, score, set, setScore;
-        score = 0;
-        matches = matches.sort(function(a, b) {
-          return a.length - b.length;
-        });
-        for (k = 0, len = matches.length; k < len; k++) {
-          set = matches[k];
-          setScore = chain * set.length * 10;
-          this.emit('scoring', [chain, setScore, set]);
-          score += setScore;
-          chain++;
-        }
-        return score;
-      };
-
-      Board.prototype.addBlocks = function(blocks) {
-        var b, k, len;
-        for (k = 0, len = blocks.length; k < len; k++) {
-          b = blocks[k];
-          this.emit('add', b);
-          this.blocks.push(b);
-        }
-        return this.update();
+        return this.scoreMatches(matches);
       };
 
       Board.prototype.clearBlocks = function(blocks) {
@@ -1348,7 +1342,7 @@
           results = [];
           for (k = 0, len = ref.length; k < len; k++) {
             block = ref[k];
-            results.push(new ColorBlock(block.x, block.y));
+            results.push(new Block(block.x, block.y));
           }
           return results;
         })();
@@ -1363,20 +1357,37 @@
         })(this));
       };
 
-      Board.prototype.update = function(chain) {
-        var block, k, l, len, len1, matches, score, set;
+      Board.prototype.scoreMatches = function(matches) {
+        var k, len, mult, score, set;
+        score = 0;
+        mult = 1;
+        matches = matches.sort(function(a, b) {
+          return a.length - b.length;
+        });
+        for (k = 0, len = matches.length; k < len; k++) {
+          set = matches[k];
+          score += mult * set.length * 10;
+          mult += 1;
+        }
+        return score;
+      };
+
+      Board.prototype.updateGrid = function(chain, score) {
+        var block, k, l, len, len1, matches, set;
         if (chain == null) {
-          chain = 1;
+          chain = 0;
         }
-        this._blockArray = null;
+        if (score == null) {
+          score = 0;
+        }
         this.fallDown();
+        this.groupFallDown();
         this.checkLoss();
-        if (zz.game.renderer.render != null) {
-          zz.game.renderer.render();
-        }
         matches = this.getMatches();
-        if (matches.length === 0) {
-          this.emit('chainComplete', chain);
+        if (matches.length === 0 && score === 0) {
+          return;
+        } else if (matches.length === 0 && score > 0) {
+          this.score += score * chain;
           return;
         }
         for (k = 0, len = matches.length; k < len; k++) {
@@ -1386,46 +1397,58 @@
             block.canSwap = false;
           }
         }
-        score = this.scoreMatches(chain, matches);
-        this.emit('score', score);
-        this.score += score;
         return this.queue('match', matches, (function(_this) {
           return function() {
-            _this.clearMatches(matches);
-            _this.update(chain + 1);
-            return _this.emit('matchComplete', matches);
+            score += _this.clearMatches(matches);
+            return _this.updateGrid(chain + 1, score);
           };
         })(this));
       };
 
       Board.prototype.fallDown = function() {
-        var block, d, distances, grid, group, i, j, k, l, len, len1, minDist, n, p, ref, ref1, ref2, ref3, results, y;
+        var grid, i, j, k, ref, results, y;
         grid = this.grid;
-        for (i = k = 0, ref = grid.length - 1; 0 <= ref ? k <= ref : k >= ref; i = 0 <= ref ? ++k : --k) {
-          for (j = l = 1, ref1 = grid[i].length - 1; 1 <= ref1 ? l <= ref1 : l >= ref1; j = 1 <= ref1 ? ++l : --l) {
-            if (!grid[i][j]) {
-              continue;
-            }
-            if (grid[i][j].group != null) {
-              continue;
-            }
-            y = j;
-            while ((grid[i][y] != null) && (grid[i][y - 1] == null) && y > 0) {
-              grid[i][y - 1] = grid[i][y];
-              grid[i][y - 1].y--;
-              grid[i][y] = null;
-              y--;
-            }
-          }
-        }
-        ref2 = this.groups;
         results = [];
-        for (n = 0, len = ref2.length; n < len; n++) {
-          group = ref2[n];
+        for (i = k = 0, ref = grid.length - 1; 0 <= ref ? k <= ref : k >= ref; i = 0 <= ref ? ++k : --k) {
+          results.push((function() {
+            var l, ref1, results1;
+            results1 = [];
+            for (j = l = 1, ref1 = grid[i].length - 1; 1 <= ref1 ? l <= ref1 : l >= ref1; j = 1 <= ref1 ? ++l : --l) {
+              if (!grid[i][j]) {
+                continue;
+              }
+              if (grid[i][j].group != null) {
+                continue;
+              }
+              y = j;
+              results1.push((function() {
+                var results2;
+                results2 = [];
+                while ((grid[i][y] != null) && (grid[i][y - 1] == null) && y > 0) {
+                  grid[i][y - 1] = grid[i][y];
+                  grid[i][y - 1].y--;
+                  grid[i][y] = null;
+                  results2.push(y--);
+                }
+                return results2;
+              })());
+            }
+            return results1;
+          })());
+        }
+        return results;
+      };
+
+      Board.prototype.groupFallDown = function() {
+        var block, d, distances, group, k, l, len, len1, minDist, ref, ref1, results;
+        ref = this.groups;
+        results = [];
+        for (k = 0, len = ref.length; k < len; k++) {
+          group = ref[k];
           distances = [];
-          ref3 = group.bottom;
-          for (p = 0, len1 = ref3.length; p < len1; p++) {
-            block = ref3[p];
+          ref1 = group.bottom;
+          for (l = 0, len1 = ref1.length; l < len1; l++) {
+            block = ref1[l];
             d = 1;
             while ((this.grid[block.x][block.y - d] == null) && block.y - d > 0) {
               d++;
@@ -1433,31 +1456,9 @@
             distances.push(d);
           }
           minDist = distances.min() - 1;
-          if (!group.active) {
-            results.push(this.queue('groupMove', [group, minDist], (function(_this) {
-              return function() {
-                group.moveAll(0, -minDist);
-                group.activate();
-                return _this.checkLoss();
-              };
-            })(this)));
-          } else {
-            results.push(group.moveAll(0, -minDist));
-          }
+          results.push(group.moveAll(0, -minDist));
         }
         return results;
-      };
-
-      Board.prototype.pause = function() {
-        return this.paused = true;
-      };
-
-      Board.prototype["continue"] = function() {
-        return this.paused = false;
-      };
-
-      Board.prototype.stop = function() {
-        return this.stopped = true;
       };
 
       return Board;
@@ -1466,32 +1467,38 @@
     zz["class"].block = Block = (function(superClass) {
       extend(Block, superClass);
 
+      Block.prototype.colors = 5;
+
       function Block(x1, y1) {
         this.x = x1;
         this.y = y1;
         this.canSwap = true;
-        this.color = false;
-        this.active = true;
+        this.canLose = true;
+        this.color = this.randomColor();
         Block.__super__.constructor.apply(this, arguments);
       }
+
+      Block.prototype.randomColor = function() {
+        return Math.round(Math.random() * this.colors) % this.colors + 1;
+      };
 
       return Block;
 
     })(Positional);
-    zz["class"].colorBlock = ColorBlock = (function(superClass) {
-      extend(ColorBlock, superClass);
+    GrayBlock = (function(superClass) {
+      extend(GrayBlock, superClass);
 
-      ColorBlock.prototype.colors = 5;
-
-      function ColorBlock(x1, y1, color) {
+      function GrayBlock(x1, y1, group1) {
         this.x = x1;
         this.y = y1;
-        this.color = color;
-        ColorBlock.__super__.constructor.call(this, this.x, this.y);
-        this.color = Math.round(Math.random() * this.colors) % this.colors + 1;
+        this.group = group1;
+        GrayBlock.__super__.constructor.call(this, this.x, this.y);
+        this.color = 0;
+        this.canSwap = 0;
+        this.canLose = 0;
       }
 
-      return ColorBlock;
+      return GrayBlock;
 
     })(Block);
     BlockGroup = (function(superClass) {
@@ -1503,17 +1510,13 @@
         this.w = w1;
         this.h = h1;
         BlockGroup.__super__.constructor.call(this, this.x, this.y);
+        this.canLose = false;
         this.blocks = [];
         this.bottom = [];
-        this.active = false;
         forall(this.w, this.h, (function(_this) {
           return function(i, j) {
             var b;
-            b = new Block(_this.x + i, _this.y + j);
-            b.group = _this;
-            b.canSwap = false;
-            b.color = 0;
-            b.active = false;
+            b = new GrayBlock(_this.x + i, _this.y + j(_this));
             if (j === 0) {
               _this.bottom.push(b);
             }
@@ -1538,9 +1541,9 @@
         ref = this.blocks;
         for (k = 0, len = ref.length; k < len; k++) {
           b = ref[k];
-          b.active = true;
+          b.canLose = true;
         }
-        return this.active = true;
+        return this.canLose = true;
       };
 
       return BlockGroup;

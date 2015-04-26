@@ -3,23 +3,29 @@
 ############################################
 zz.class.block = class Block extends Positional
 
+	colors: 5
+
 	constructor: (@x, @y)->
 		@canSwap = true
 		@canLose = true
-		@color = 0
+		@color = @randomColor()
 		super
 
-############################################
-##  Colored Block
-############################################
-zz.class.colorBlock = class ColorBlock extends Block
+	randomColor: ->
+		Math.round(Math.random()*@colors)%@colors + 1
 
-	colors: 5
 
-	constructor: (@x, @y, @color)->
-		super @x, @y
-		@color = Math.round(Math.random()*@colors)%@colors + 1
+class GrayBlock extends Block
 
+	constructor: (@x, @y, @group)->
+		super @x,@y
+
+		@color = 0
+		@canSwap = 0
+
+		# Block must fall down before 
+		# it can be counted against lost
+		@canLose = 0 
 
 ############################################
 ##  Big Block
@@ -28,17 +34,17 @@ class BlockGroup extends Positional
 
 	constructor: (@x, @y, @w, @h)->
 		super @x, @y
+
+		@canLose = false
+
+		## Array of blocks
 		@blocks = []
+
+		## Array of bottom blocck
 		@bottom = []
-		@active = false
 
 		forall @w, @h, (i,j)=>
-			b = new Block(@x + i, @y + j)
-
-			b.group = this
-			b.canSwap = false
-			b.color = 0
-			b.active = false
+			b = new GrayBlock @x + i, @y + j this
 
 			@bottom.push b if (j == 0)
 			@blocks.push b
@@ -47,5 +53,5 @@ class BlockGroup extends Positional
 		b.move(x,y) for b in @blocks
 
 	activate: ()->
-		b.active = true for b in @blocks
-		@active = true
+		b.canLose = true for b in @blocks
+		@canLose = true

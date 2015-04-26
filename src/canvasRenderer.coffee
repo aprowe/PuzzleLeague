@@ -122,6 +122,7 @@ class CanvasBoardRenderer extends BoardRenderer
     matchAnimation: (matches)->
         length = 750
         @board.pause()
+        @render()
 
         each = (b)=>
             b.t = createjs.Tween.get(b.s).wait(length*.75).to(alpha: 0, length*.25)
