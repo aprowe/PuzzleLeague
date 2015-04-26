@@ -1285,11 +1285,15 @@
       Board.prototype.scoreMatches = function(chain, matches) {
         var k, len, score, set, setScore;
         score = 0;
+        matches = matches.sort(function(a, b) {
+          return a.length - b.length;
+        });
         for (k = 0, len = matches.length; k < len; k++) {
           set = matches[k];
           setScore = chain * set.length * 10;
           this.emit('scoring', [chain, setScore, set]);
           score += setScore;
+          chain++;
         }
         return score;
       };

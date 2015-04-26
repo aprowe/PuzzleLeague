@@ -180,11 +180,14 @@ zz.class.board = class Board extends zz.class.base
 
     scoreMatches: (chain, matches)->
         score = 0 
+        matches  = matches.sort (a,b)->
+            return a.length - b.length
 
         for set in matches
             setScore = chain * set.length * 10
             @emit 'scoring', [chain, setScore, set]
             score += setScore
+            chain++
 
         return score
 

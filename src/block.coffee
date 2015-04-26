@@ -5,8 +5,8 @@ zz.class.block = class Block extends Positional
 
 	constructor: (@x, @y)->
 		@canSwap = true
-		@color = false
-		@active = true
+		@canLose = true
+		@color = 0
 		super
 
 ############################################
