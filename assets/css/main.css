@@ -23,6 +23,9 @@ body {
 
 .puzzle {
   display: inline-block;
+  margin-top: 50px;
+  width: 400px;
+  margin: auto;
   /*margin: auto;*/ }
 
 .puzzle-container {
@@ -43,5 +46,15 @@ body {
       color: #CFCC1F; }
   .menu:first-of-type {
     display: block; }
+
+.pause {
+  background: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  padding-top: 200px;
+  text-align: center; }
 
 /*# sourceMappingURL=main.css.map */

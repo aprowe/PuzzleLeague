@@ -15,6 +15,14 @@ zz.class.block = class Block extends Positional
 	randomColor: ->
 		Math.round(Math.random()*@colors)%@colors + 1
 
+	clone: ->
+		b = new Block()
+		b.color = @color
+		b.x = @x
+		b.y = @y
+		
+		return b
+
 
 class GrayBlock extends Block
 

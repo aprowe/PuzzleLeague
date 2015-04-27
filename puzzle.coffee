@@ -72,6 +72,8 @@ root = if window? then window else this
     			#name: [{args: [], fn}, ]
     		}
 
+    		@useQueue = true
+
     		for key, value of @defaults
     			this[key] = value
 
@@ -102,6 +104,8 @@ root = if window? then window else this
     		@_queue[event] = [] unless @_queue[event]?
     		@_queue[event].push fn
     		@emit event, args
+
+    		@done event if not @useQueue
 
 
     ###########################
@@ -143,16 +147,20 @@ root = if window? then window else this
     ############################################
     ## Ticker Class to keep a framerate running
     ############################################
-    zz.class.ticker = class Ticker extends Base
-
-    	## Frames per second
-    	framerate: 60
-
-    	## Is Ticker paused?
-    	running: false
+    class Ticker extends Base
 
     	## Total frames elapsed
     	elapsed: 0
+
+    	constructor: (framerate=60)->
+    		super
+
+    		## Frames per second
+    		@framerate = framerate
+
+    		## Is Ticker paused?
+    		@running = false
+
 
     	## Start the timer
     	start: ->
@@ -194,6 +202,7 @@ root = if window? then window else this
 
     	settings: 
     		players: 1
+    		computer: true
 
 
     	## Initialize game
@@ -204,14 +213,23 @@ root = if window? then window else this
 
     		zz.game = this
 
-    		@ticker = new zz.class.ticker
+    		@ticker = new Ticker()
 
     		@ticker.on 'tick', => @loop()
 
     		@initBoards @settings.players
 
     		@renderer = new CanvasRenderer(this)
-    		@controllers = (new EventController(b) for b in @boards)
+
+    		new EventController @boards[0]
+
+    		if @boards.length > 1
+    			if @settings.computer
+    				new ComputerController @boards[1]
+    			else
+    				new EventController @boards[1] 
+
+
     		@soundsControllers = (new SoundController(b) for b in @boards)
 
     		@musicController = new MusicController this
@@ -236,7 +254,15 @@ root = if window? then window else this
     	loop: ->
     		@renderer.render()
 
+    	stop: ->
+    		@emit 'stop'
+    		@ticker.stop()
+    		delete @boards
+    		delete @ticker
 
+    	pause: ->
+    		@emit 'pause'
+    		@ticker.stop()
 
 
 
@@ -255,9 +281,23 @@ root = if window? then window else this
                 startSingle: =>
                     @settings.players = 1
                     @startGame()
+
                 vsFriend: => 
                     @settings.players = 2
+                    @settings.computer = false
                     @startGame()
+
+                vsComputer: =>
+                    @settings.computer = true
+                    @settings.players = 2
+
+                    @startGame()
+
+                continue: => 
+                    @game.start()
+                    $('#pause').hide()
+
+                exit: => @endGame()
 
             $ => @setUpMenu()
 
@@ -273,6 +313,7 @@ root = if window? then window else this
                 action = $(this).data 'action'
                 that.actions[action].call(that) if action?
 
+
         showMenu: (id)->
             @menus.hide()
             $(".menu##{id}").show()
@@ -282,9 +323,21 @@ root = if window? then window else this
             @game = new Game(@settings)
             @game.start()
         
+        pause: ()->
+            console.log @game.ticker
+            if @game.ticker.running
+                @game.pause()
+                $('#pause').show()
+            else 
+                @game.start()
+                $('#pause').hide()
+
         endGame: ->
+            window.location = '/'
+            @game.stop()
             $('.main').show()
-            @game.end()
+            $('.puzzle').hide()
+            @showMenu('main')
 
     ################################
     ## Rendering Class
@@ -644,20 +697,21 @@ root = if window? then window else this
             'right',
             'swap',
             'advance'
+            'exit'
         ]
 
         states:
             playing: 
-                up:    -> @board.moveCursor 0, 1
-                down:  -> @board.moveCursor 0, -1
-                left:  -> @board.moveCursor -1, 0
-                right: -> @board.moveCursor  1, 0
-                swap:  -> @board.swap()
+                up:       -> @board.moveCursor  0, 1
+                down:     -> @board.moveCursor  0,-1
+                left:     -> @board.moveCursor -1, 0
+                right:    -> @board.moveCursor  1, 0
+                swap:     -> @board.swap()
                 advance:  -> @board.counter+=30
+                exit:     -> zz.manager.pause()
 
         dispatch: (key, args)-> 
             @states[@state][key].call(this, args) if @states[@state][key]?
-            zz.game.renderer.render()
 
     zz.class.eventController = class EventController extends zz.class.controller
 
@@ -670,6 +724,7 @@ root = if window? then window else this
                 40: 'down'
                 32: 'swap'
                 13: 'advance'
+                27: 'exit'
             },
             {
                 65: 'left'
@@ -693,6 +748,135 @@ root = if window? then window else this
                 if key?
                     e.preventDefault(e)
                     @dispatch key
+
+
+    class ComputerController extends Controller
+
+        speed: 500
+
+        levels: 1
+
+        constructor: (@board)->
+            super @board
+
+            t = new Ticker(4)
+            t.on 'tick', => @evaluate()
+            t.start()
+
+            @board.on 'update', =>
+                @target = null if @target == 'wait'
+
+            @target = null
+
+            @lastTarget = null
+
+        evaluateBoard: (board, level=0, top=true)->
+            trials = []
+
+            swaps = []
+
+            for b in board.blocks
+                continue unless b.canSwap
+                continue if b.y < 0 
+
+                p1 = {x: b.x,   y: b.y}
+                p2 = {x: b.x-1, y: b.y}
+
+                p1.score = -10000 * b.y if b.color == 0
+
+                swaps.push p1 if swaps.indexOf(p1) == -1 and p1.x < board.width - 2
+                swaps.push p2 if swaps.indexOf(p2) == -1 and p2.x > 0
+
+
+            for b in swaps
+                tmp = board.clone()
+                tmp.useQueue = false
+
+                tmp.cursor.x = b.x
+                tmp.cursor.y = b.y
+
+                continue unless tmp.swap()
+
+                tmp.score += b.score if b.score?
+
+                if b.y > 5
+                    tmp.score -= b.y * 10
+
+                if b.y > 8
+                    tmp.score -= b.y * 10000
+
+                if level > 0 
+                    best = @evaluateBoard tmp, level - 1, false
+                    tmp.score += best.score * 0.9
+
+                trials.push 
+                    x: b.x
+                    y: b.y
+                    score: tmp.score + Math.random()
+
+            trials.sort (a,b)->
+                (a.score - b.score)
+
+
+            return trials if top
+            return trials.pop()
+
+
+        evaluate: ()->
+            return @goto @target if @target
+
+            trials = @evaluateBoard @board, 1
+
+            best = trials.pop()
+
+            # if best.score > 0 
+            @target = best
+            # else
+                # @target = 'wait'
+
+
+
+        goto: (target)->
+            return unless target.x?
+
+            diff = 
+                x: target.x - @board.cursor.x
+                y: target.y - @board.cursor.y
+                
+            if diff.x == 0 and diff.y == 0 
+                @dispatch 'swap'
+                @lastTarget = @target
+                @target = null
+                return
+
+            if diff.x < 0
+                @dispatch 'left'
+                return
+
+            else if diff.x > 0
+                @dispatch 'right' 
+                return
+
+            else if diff.y > 0
+                @dispatch 'up'    
+                return
+
+            else if diff.y < 0
+                @dispatch 'down'
+                return
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -782,12 +966,12 @@ root = if window? then window else this
         height: 10
 
         ## Speed of the rows raising (frames per row)
-        speed: 60*15
+        speed: 60*7
 
         ## Counter to keep track of the rows rising
         counter: 0
 
-        constructor: (@id)->
+        constructor: (@id, clone=false)->
             super
 
             ## Array of blocks
@@ -799,7 +983,11 @@ root = if window? then window else this
             ## initial score
             @score = 0
 
+            ## board instance of opponent
             @opponent = null
+
+            ## indicates this game is lost or not
+            @lost = false
 
             ## Set up easy grid getter
             Object.defineProperty this, 'grid', get: => @blockArray()
@@ -813,7 +1001,7 @@ root = if window? then window else this
                     @blocks.push b for b in @createRow y
 
                 @getMatches().length > 0 
-            )()
+            )() unless clone
 
 
             ## Set Up Cursor
@@ -821,7 +1009,9 @@ root = if window? then window else this
             @cursor.limit [0, @width-2, 0, @height-2]
 
             ## start game ticker
-            zz.game.ticker.on 'tick', => @tick()
+            zz.game.ticker.on 'tick', => @tick() unless clone
+
+            @updateGrid() unless clone
 
         #########################
         ## Retreival functions
@@ -941,6 +1131,7 @@ root = if window? then window else this
         lose: ->
             @pause()
             @emit 'loss', this
+            @opponent.pause() if @opponent?
 
         ## 
         # Swaps two blocks under the cursor
@@ -950,14 +1141,16 @@ root = if window? then window else this
             b1 = @grid[x][@cursor.y]
             b2 = @grid[x+1][@cursor.y]
 
-            return unless b1? or b2?
-            return if b1? and not b1.canSwap
-            return if b2? and not b2.canSwap
+            return false unless b1? or b2?
+            return false if b1? and not b1.canSwap
+            return false if b2? and not b2.canSwap
 
             @queue 'swap', [b1,b2], =>
                 b1.x = x+1 if b1?
                 b2.x = x if b2?
                 @updateGrid()
+
+            return true
 
         ##
         # Moves the cursor with an event emition
@@ -1089,12 +1282,14 @@ root = if window? then window else this
 
             ## Return if no matches and no chain
             if matches.length == 0 and score == 0 
+                @emit 'update'
                 return
 
             ## End of chain
             else if matches.length == 0 and score > 0 
                 @score += score * chain
                 @sendBlocks score * chain
+                @emit 'update'
                 return
 
             ## Hold blocks in match
@@ -1171,6 +1366,12 @@ root = if window? then window else this
 
             @opponent.addGroup new BlockGroup(x,y,w,h)
 
+        clone: ()->
+            board = new Board(2, true)
+            board.blocks = []
+            board.blocks.push b.clone() for b in @blocks
+            return board
+
 
 
     ############################################
@@ -1189,6 +1390,14 @@ root = if window? then window else this
 
     	randomColor: ->
     		Math.round(Math.random()*@colors)%@colors + 1
+
+    	clone: ->
+    		b = new Block()
+    		b.color = @color
+    		b.x = @x
+    		b.y = @y
+    		
+    		return b
 
 
     class GrayBlock extends Block
@@ -1235,7 +1444,7 @@ root = if window? then window else this
     		@canLose = true
     
     ## Start Menu Manager
-    new Manager()
+    zz.manager = new Manager()
 
     return zz
 )

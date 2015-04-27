@@ -10,12 +10,12 @@ zz.class.board = class Board extends zz.class.base
     height: 10
 
     ## Speed of the rows raising (frames per row)
-    speed: 60*15
+    speed: 60*7
 
     ## Counter to keep track of the rows rising
     counter: 0
 
-    constructor: (@id)->
+    constructor: (@id, clone=false)->
         super
 
         ## Array of blocks
@@ -27,7 +27,11 @@ zz.class.board = class Board extends zz.class.base
         ## initial score
         @score = 0
 
+        ## board instance of opponent
         @opponent = null
+
+        ## indicates this game is lost or not
+        @lost = false
 
         ## Set up easy grid getter
         Object.defineProperty this, 'grid', get: => @blockArray()
@@ -41,7 +45,7 @@ zz.class.board = class Board extends zz.class.base
                 @blocks.push b for b in @createRow y
 
             @getMatches().length > 0 
-        )()
+        )() unless clone
 
 
         ## Set Up Cursor
@@ -49,7 +53,9 @@ zz.class.board = class Board extends zz.class.base
         @cursor.limit [0, @width-2, 0, @height-2]
 
         ## start game ticker
-        zz.game.ticker.on 'tick', => @tick()
+        zz.game.ticker.on 'tick', => @tick() unless clone
+
+        @updateGrid() unless clone
 
     #########################
     ## Retreival functions
@@ -169,6 +175,7 @@ zz.class.board = class Board extends zz.class.base
     lose: ->
         @pause()
         @emit 'loss', this
+        @opponent.pause() if @opponent?
 
     ## 
     # Swaps two blocks under the cursor
@@ -178,14 +185,16 @@ zz.class.board = class Board extends zz.class.base
         b1 = @grid[x][@cursor.y]
         b2 = @grid[x+1][@cursor.y]
 
-        return unless b1? or b2?
-        return if b1? and not b1.canSwap
-        return if b2? and not b2.canSwap
+        return false unless b1? or b2?
+        return false if b1? and not b1.canSwap
+        return false if b2? and not b2.canSwap
 
         @queue 'swap', [b1,b2], =>
             b1.x = x+1 if b1?
             b2.x = x if b2?
             @updateGrid()
+
+        return true
 
     ##
     # Moves the cursor with an event emition
@@ -317,12 +326,14 @@ zz.class.board = class Board extends zz.class.base
 
         ## Return if no matches and no chain
         if matches.length == 0 and score == 0 
+            @emit 'update'
             return
 
         ## End of chain
         else if matches.length == 0 and score > 0 
             @score += score * chain
             @sendBlocks score * chain
+            @emit 'update'
             return
 
         ## Hold blocks in match
@@ -398,5 +409,11 @@ zz.class.board = class Board extends zz.class.base
         y = @opponent.height-h
 
         @opponent.addGroup new BlockGroup(x,y,w,h)
+
+    clone: ()->
+        board = new Board(2, true)
+        board.blocks = []
+        board.blocks.push b.clone() for b in @blocks
+        return board
 
 

@@ -17,6 +17,7 @@ zz.class.game = class Game extends Base
 
 	settings: 
 		players: 1
+		computer: true
 
 
 	## Initialize game
@@ -27,14 +28,23 @@ zz.class.game = class Game extends Base
 
 		zz.game = this
 
-		@ticker = new zz.class.ticker
+		@ticker = new Ticker()
 
 		@ticker.on 'tick', => @loop()
 
 		@initBoards @settings.players
 
 		@renderer = new CanvasRenderer(this)
-		@controllers = (new EventController(b) for b in @boards)
+
+		new EventController @boards[0]
+
+		if @boards.length > 1
+			if @settings.computer
+				new ComputerController @boards[1]
+			else
+				new EventController @boards[1] 
+
+
 		@soundsControllers = (new SoundController(b) for b in @boards)
 
 		@musicController = new MusicController this
@@ -59,7 +69,15 @@ zz.class.game = class Game extends Base
 	loop: ->
 		@renderer.render()
 
+	stop: ->
+		@emit 'stop'
+		@ticker.stop()
+		delete @boards
+		delete @ticker
 
+	pause: ->
+		@emit 'pause'
+		@ticker.stop()
 
 
 

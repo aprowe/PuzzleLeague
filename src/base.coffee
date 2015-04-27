@@ -14,6 +14,8 @@ zz.class.base = class Base
 			#name: [{args: [], fn}, ]
 		}
 
+		@useQueue = true
+
 		for key, value of @defaults
 			this[key] = value
 
@@ -44,4 +46,6 @@ zz.class.base = class Base
 		@_queue[event] = [] unless @_queue[event]?
 		@_queue[event].push fn
 		@emit event, args
+
+		@done event if not @useQueue
 

@@ -1,16 +1,20 @@
 ############################################
 ## Ticker Class to keep a framerate running
 ############################################
-zz.class.ticker = class Ticker extends Base
-
-	## Frames per second
-	framerate: 60
-
-	## Is Ticker paused?
-	running: false
+class Ticker extends Base
 
 	## Total frames elapsed
 	elapsed: 0
+
+	constructor: (framerate=60)->
+		super
+
+		## Frames per second
+		@framerate = framerate
+
+		## Is Ticker paused?
+		@running = false
+
 
 	## Start the timer
 	start: ->

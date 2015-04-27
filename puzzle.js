@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, Controller, EventController, Game, GrayBlock, Manager, MusicController, Positional, Renderer, SoundController, Ticker, forall, zz;
+    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ComputerController, Controller, EventController, Game, GrayBlock, Manager, MusicController, Positional, Renderer, SoundController, Ticker, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -60,6 +60,7 @@
         this._events = _events != null ? _events : {};
         this._events = {};
         this._queue = {};
+        this.useQueue = true;
         ref = this.defaults;
         for (key in ref) {
           value = ref[key];
@@ -114,7 +115,10 @@
           this._queue[event] = [];
         }
         this._queue[event].push(fn);
-        return this.emit(event, args);
+        this.emit(event, args);
+        if (!this.useQueue) {
+          return this.done(event);
+        }
       };
 
       return Base;
@@ -169,18 +173,19 @@
       return Positional;
 
     })(Base);
-    zz["class"].ticker = Ticker = (function(superClass) {
+    Ticker = (function(superClass) {
       extend(Ticker, superClass);
 
-      function Ticker() {
-        return Ticker.__super__.constructor.apply(this, arguments);
-      }
-
-      Ticker.prototype.framerate = 60;
-
-      Ticker.prototype.running = false;
-
       Ticker.prototype.elapsed = 0;
+
+      function Ticker(framerate) {
+        if (framerate == null) {
+          framerate = 60;
+        }
+        Ticker.__super__.constructor.apply(this, arguments);
+        this.framerate = framerate;
+        this.running = false;
+      }
 
       Ticker.prototype.start = function() {
         if (this.running) {
@@ -224,7 +229,8 @@
       };
 
       Game.prototype.settings = {
-        players: 1
+        players: 1,
+        computer: true
       };
 
       function Game(settings) {
@@ -235,7 +241,7 @@
         Game.__super__.constructor.apply(this, arguments);
         this.settings = $.extend(this.settings, settings, true);
         zz.game = this;
-        this.ticker = new zz["class"].ticker;
+        this.ticker = new Ticker();
         this.ticker.on('tick', (function(_this) {
           return function() {
             return _this.loop();
@@ -243,16 +249,14 @@
         })(this));
         this.initBoards(this.settings.players);
         this.renderer = new CanvasRenderer(this);
-        this.controllers = (function() {
-          var k, len, ref, results;
-          ref = this.boards;
-          results = [];
-          for (k = 0, len = ref.length; k < len; k++) {
-            b = ref[k];
-            results.push(new EventController(b));
+        new EventController(this.boards[0]);
+        if (this.boards.length > 1) {
+          if (this.settings.computer) {
+            new ComputerController(this.boards[1]);
+          } else {
+            new EventController(this.boards[1]);
           }
-          return results;
-        }).call(this);
+        }
         this.soundsControllers = (function() {
           var k, len, ref, results;
           ref = this.boards;
@@ -287,6 +291,18 @@
         return this.renderer.render();
       };
 
+      Game.prototype.stop = function() {
+        this.emit('stop');
+        this.ticker.stop();
+        delete this.boards;
+        return delete this.ticker;
+      };
+
+      Game.prototype.pause = function() {
+        this.emit('pause');
+        return this.ticker.stop();
+      };
+
       return Game;
 
     })(Base);
@@ -304,7 +320,26 @@
           vsFriend: (function(_this) {
             return function() {
               _this.settings.players = 2;
+              _this.settings.computer = false;
               return _this.startGame();
+            };
+          })(this),
+          vsComputer: (function(_this) {
+            return function() {
+              _this.settings.computer = true;
+              _this.settings.players = 2;
+              return _this.startGame();
+            };
+          })(this),
+          "continue": (function(_this) {
+            return function() {
+              _this.game.start();
+              return $('#pause').hide();
+            };
+          })(this),
+          exit: (function(_this) {
+            return function() {
+              return _this.endGame();
             };
           })(this)
         };
@@ -343,9 +378,23 @@
         return this.game.start();
       };
 
+      Manager.prototype.pause = function() {
+        console.log(this.game.ticker);
+        if (this.game.ticker.running) {
+          this.game.pause();
+          return $('#pause').show();
+        } else {
+          this.game.start();
+          return $('#pause').hide();
+        }
+      };
+
       Manager.prototype.endGame = function() {
+        window.location = '/';
+        this.game.stop();
         $('.main').show();
-        return this.game.end();
+        $('.puzzle').hide();
+        return this.showMenu('main');
       };
 
       return Manager;
@@ -847,7 +896,7 @@
         Controller.__super__.constructor.apply(this, arguments);
       }
 
-      Controller.prototype.keys = ['up', 'down', 'left', 'right', 'swap', 'advance'];
+      Controller.prototype.keys = ['up', 'down', 'left', 'right', 'swap', 'advance', 'exit'];
 
       Controller.prototype.states = {
         playing: {
@@ -868,15 +917,17 @@
           },
           advance: function() {
             return this.board.counter += 30;
+          },
+          exit: function() {
+            return zz.manager.pause();
           }
         }
       };
 
       Controller.prototype.dispatch = function(key, args) {
         if (this.states[this.state][key] != null) {
-          this.states[this.state][key].call(this, args);
+          return this.states[this.state][key].call(this, args);
         }
-        return zz.game.renderer.render();
       };
 
       return Controller;
@@ -892,7 +943,8 @@
           39: 'right',
           40: 'down',
           32: 'swap',
-          13: 'advance'
+          13: 'advance',
+          27: 'exit'
         }, {
           65: 'left',
           87: 'up',
@@ -923,6 +975,148 @@
       return EventController;
 
     })(zz["class"].controller);
+    ComputerController = (function(superClass) {
+      extend(ComputerController, superClass);
+
+      ComputerController.prototype.speed = 500;
+
+      ComputerController.prototype.levels = 1;
+
+      function ComputerController(board1) {
+        var t;
+        this.board = board1;
+        ComputerController.__super__.constructor.call(this, this.board);
+        t = new Ticker(4);
+        t.on('tick', (function(_this) {
+          return function() {
+            return _this.evaluate();
+          };
+        })(this));
+        t.start();
+        this.board.on('update', (function(_this) {
+          return function() {
+            if (_this.target === 'wait') {
+              return _this.target = null;
+            }
+          };
+        })(this));
+        this.target = null;
+        this.lastTarget = null;
+      }
+
+      ComputerController.prototype.evaluateBoard = function(board, level, top) {
+        var b, best, k, l, len, len1, p1, p2, ref, swaps, tmp, trials;
+        if (level == null) {
+          level = 0;
+        }
+        if (top == null) {
+          top = true;
+        }
+        trials = [];
+        swaps = [];
+        ref = board.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          if (!b.canSwap) {
+            continue;
+          }
+          if (b.y < 0) {
+            continue;
+          }
+          p1 = {
+            x: b.x,
+            y: b.y
+          };
+          p2 = {
+            x: b.x - 1,
+            y: b.y
+          };
+          if (b.color === 0) {
+            p1.score = -10000 * b.y;
+          }
+          if (swaps.indexOf(p1) === -1 && p1.x < board.width - 2) {
+            swaps.push(p1);
+          }
+          if (swaps.indexOf(p2) === -1 && p2.x > 0) {
+            swaps.push(p2);
+          }
+        }
+        for (l = 0, len1 = swaps.length; l < len1; l++) {
+          b = swaps[l];
+          tmp = board.clone();
+          tmp.useQueue = false;
+          tmp.cursor.x = b.x;
+          tmp.cursor.y = b.y;
+          if (!tmp.swap()) {
+            continue;
+          }
+          if (b.score != null) {
+            tmp.score += b.score;
+          }
+          if (b.y > 5) {
+            tmp.score -= b.y * 10;
+          }
+          if (b.y > 8) {
+            tmp.score -= b.y * 10000;
+          }
+          if (level > 0) {
+            best = this.evaluateBoard(tmp, level - 1, false);
+            tmp.score += best.score * 0.9;
+          }
+          trials.push({
+            x: b.x,
+            y: b.y,
+            score: tmp.score + Math.random()
+          });
+        }
+        trials.sort(function(a, b) {
+          return a.score - b.score;
+        });
+        if (top) {
+          return trials;
+        }
+        return trials.pop();
+      };
+
+      ComputerController.prototype.evaluate = function() {
+        var best, trials;
+        if (this.target) {
+          return this.goto(this.target);
+        }
+        trials = this.evaluateBoard(this.board, 1);
+        best = trials.pop();
+        return this.target = best;
+      };
+
+      ComputerController.prototype.goto = function(target) {
+        var diff;
+        if (target.x == null) {
+          return;
+        }
+        diff = {
+          x: target.x - this.board.cursor.x,
+          y: target.y - this.board.cursor.y
+        };
+        if (diff.x === 0 && diff.y === 0) {
+          this.dispatch('swap');
+          this.lastTarget = this.target;
+          this.target = null;
+          return;
+        }
+        if (diff.x < 0) {
+          this.dispatch('left');
+        } else if (diff.x > 0) {
+          this.dispatch('right');
+        } else if (diff.y > 0) {
+          this.dispatch('up');
+        } else if (diff.y < 0) {
+          this.dispatch('down');
+        }
+      };
+
+      return ComputerController;
+
+    })(Controller);
     SoundController = (function(superClass) {
       extend(SoundController, superClass);
 
@@ -1034,17 +1228,21 @@
 
       Board.prototype.height = 10;
 
-      Board.prototype.speed = 60 * 15;
+      Board.prototype.speed = 60 * 7;
 
       Board.prototype.counter = 0;
 
-      function Board(id1) {
+      function Board(id1, clone) {
         this.id = id1;
+        if (clone == null) {
+          clone = false;
+        }
         Board.__super__.constructor.apply(this, arguments);
         this.blocks = [];
         this.groups = [];
         this.score = 0;
         this.opponent = null;
+        this.lost = false;
         Object.defineProperty(this, 'grid', {
           get: (function(_this) {
             return function() {
@@ -1052,29 +1250,36 @@
             };
           })(this)
         });
-        while (((function(_this) {
-            return function() {
-              var b, k, l, len, ref, y;
-              _this.blocks = [];
-              for (y = k = -1; k <= 2; y = ++k) {
-                ref = _this.createRow(y);
-                for (l = 0, len = ref.length; l < len; l++) {
-                  b = ref[l];
-                  _this.blocks.push(b);
+        if (!clone) {
+          while (((function(_this) {
+              return function() {
+                var b, k, l, len, ref, y;
+                _this.blocks = [];
+                for (y = k = -1; k <= 2; y = ++k) {
+                  ref = _this.createRow(y);
+                  for (l = 0, len = ref.length; l < len; l++) {
+                    b = ref[l];
+                    _this.blocks.push(b);
+                  }
                 }
-              }
-              return _this.getMatches().length > 0;
-            };
-          })(this))()) {
-          'do';
+                return _this.getMatches().length > 0;
+              };
+            })(this))()) {
+            'do';
+          }
         }
         this.cursor = new Positional;
         this.cursor.limit([0, this.width - 2, 0, this.height - 2]);
         zz.game.ticker.on('tick', (function(_this) {
           return function() {
-            return _this.tick();
+            if (!clone) {
+              return _this.tick();
+            }
           };
         })(this));
+        if (!clone) {
+          this.updateGrid();
+        }
       }
 
       Board.prototype.blockArray = function() {
@@ -1229,7 +1434,10 @@
 
       Board.prototype.lose = function() {
         this.pause();
-        return this.emit('loss', this);
+        this.emit('loss', this);
+        if (this.opponent != null) {
+          return this.opponent.pause();
+        }
       };
 
       Board.prototype.swap = function() {
@@ -1238,15 +1446,15 @@
         b1 = this.grid[x][this.cursor.y];
         b2 = this.grid[x + 1][this.cursor.y];
         if (!((b1 != null) || (b2 != null))) {
-          return;
+          return false;
         }
         if ((b1 != null) && !b1.canSwap) {
-          return;
+          return false;
         }
         if ((b2 != null) && !b2.canSwap) {
-          return;
+          return false;
         }
-        return this.queue('swap', [b1, b2], (function(_this) {
+        this.queue('swap', [b1, b2], (function(_this) {
           return function() {
             if (b1 != null) {
               b1.x = x + 1;
@@ -1257,6 +1465,7 @@
             return _this.updateGrid();
           };
         })(this));
+        return true;
       };
 
       Board.prototype.moveCursor = function(x, y) {
@@ -1415,10 +1624,12 @@
         this.checkLoss();
         matches = this.getMatches();
         if (matches.length === 0 && score === 0) {
+          this.emit('update');
           return;
         } else if (matches.length === 0 && score > 0) {
           this.score += score * chain;
           this.sendBlocks(score * chain);
+          this.emit('update');
           return;
         }
         for (k = 0, len = matches.length; k < len; k++) {
@@ -1519,6 +1730,18 @@
         return this.opponent.addGroup(new BlockGroup(x, y, w, h));
       };
 
+      Board.prototype.clone = function() {
+        var b, board, k, len, ref;
+        board = new Board(2, true);
+        board.blocks = [];
+        ref = this.blocks;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          board.blocks.push(b.clone());
+        }
+        return board;
+      };
+
       return Board;
 
     })(zz["class"].base);
@@ -1539,6 +1762,15 @@
 
       Block.prototype.randomColor = function() {
         return Math.round(Math.random() * this.colors) % this.colors + 1;
+      };
+
+      Block.prototype.clone = function() {
+        var b;
+        b = new Block();
+        b.color = this.color;
+        b.x = this.x;
+        b.y = this.y;
+        return b;
       };
 
       return Block;
@@ -1609,7 +1841,7 @@
       return BlockGroup;
 
     })(Positional);
-    new Manager();
+    zz.manager = new Manager();
     return zz;
   });
 

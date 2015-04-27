@@ -1,6 +1,6 @@
     
     ## Start Menu Manager
-    new Manager()
+    zz.manager = new Manager()
 
     return zz
 )
