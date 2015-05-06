@@ -9,12 +9,6 @@ zz.class.board = class Board extends zz.class.base
     ## Height of board
     height: 10
 
-    ## Speed of the rows raising (frames per row)
-    speed: 60*15
-
-    ## Counter to keep track of the rows rising
-    counter: 0
-
     constructor: (@id, clone=false)->
         super
 
@@ -32,6 +26,16 @@ zz.class.board = class Board extends zz.class.base
 
         ## indicates this game is lost or not
         @lost = false
+
+        ## Keeps track of the row increment
+        @counter = 0 
+
+        ## Speed of rows rising
+        @speed = 60*15
+
+        @speedLevel = 1
+
+        @speedCounter = 0 
 
         ## Set up easy grid getter
         Object.defineProperty this, 'grid', get: => @blockArray()
@@ -123,12 +127,19 @@ zz.class.board = class Board extends zz.class.base
     ##
     # Main loop, pushing up rows
     tick: ()->
-        @counter++ unless @paused
+        return if @paused
+
+        @counter++
+        @speedCounter++
 
         if @counter > @speed
             @counter = 0
             @pushRow() 
+
+        if @speedCounter % (60 * 15) == 0
+            @speedLevel++
             @speed *= 0.95
+            @emit 'scoreChange'
 
     ## 
     # Push up a row
@@ -305,6 +316,7 @@ zz.class.board = class Board extends zz.class.base
             score += mult * set.length * 10
             mult += 1
 
+        @emit 'scoreChange'
         return score
 
     ## 
@@ -387,6 +399,7 @@ zz.class.board = class Board extends zz.class.base
 
 
     sendBlocks: (score)->
+        @emit 'logScore', score
         return unless @opponent?
         # return if score < 50
 

@@ -5,7 +5,9 @@
     <script src='puzzle.js'></script>
     <link rel='stylesheet' href='assets/css/main.css'/>
     </head>
-    <body>
+    <body class='state-menu'>
+        <div class='wallpaper'>
+        </div>
 
         <div class='main'>
             <h1>The Puzzle League</h1>
@@ -33,13 +35,60 @@
             <div data-action='exit'>Exit game</div>
         </div>
 
+        <div class='puzzle-content'>
+            <div class='puzzle-container' id='player-0'>
+                <div class='scoreboard'>
+                    <table>
+                    <tr>
+                        <td>
+                            Score: 
+                        </td>
+                        <td class='color'>
+                            <span class='score'></span>
+                        </td>
+                    </tr>
 
-        <div id='scoreboard'>
-            <span id='score'></span>
+                    <tr>
+                        <td>
+                            Speed:
+                        </td>
+                        <td class='speed color'>    
+                            0
+                        </td>
+                    </tr>
+                    </table>
+                </div>    
+                <canvas class='puzzle' id='puzzle-0'></canvas>
+                <div class='combos'>
+                    <div>Combos</div>
+                </div>
+            </div>
+
+            <div class='puzzle-container' id='player-1'>
+                <canvas class='puzzle' id='puzzle-1'></canvas>
+                <div class='scoreboard' style='display:none'>
+                <table>
+                    <tr>
+                        <td>
+                            Score: 
+                        </td>
+                        <td class='color'>
+                            <span class='score'></span>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            Speed:
+                        </td>
+                        <td class='speed color'>    
+                            0
+                        </td>
+                    </tr>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class='puzzle-container'>
-            <canvas class='puzzle' id='puzzle-0'></canvas>
-            <canvas class='puzzle' id='puzzle-1'></canvas>
-        </div>
+
     </body>
 </html>

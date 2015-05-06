@@ -237,9 +237,9 @@
 
     })(Base);
     STATE = {
-      MENU: '-Menu',
-      PLAYING: '-Playing',
-      PAUSED: '-Paused'
+      MENU: 'menu',
+      PLAYING: 'playing',
+      PAUSED: 'paused'
     };
     Game = (function(superClass) {
       extend(Game, superClass);
@@ -273,6 +273,11 @@
         this.manager = new Manager;
       }
 
+      Game.prototype.setState = function(state) {
+        this.state = state;
+        return this.emit('state', state);
+      };
+
       Game.prototype.initBoards = function() {
         this.boards = [];
         this.boards.push(new Board(0));
@@ -300,14 +305,14 @@
           new BoardSoundController(b);
         }
         this.ticker.start();
-        this.state = STATE.PLAYING;
+        this.setState(STATE.PLAYING);
         return this.emit('start');
       };
 
       Game.prototype["continue"] = function() {
         this.emit('continue');
         this.ticker.start();
-        return this.state = STATE.PLAYING;
+        return this.setState(STATE.PLAYING);
       };
 
       Game.prototype.stop = function() {
@@ -315,14 +320,13 @@
         this.ticker.stop();
         delete this.boards;
         delete this.ticker;
-        return this.state = STATE.MENU;
+        return this.setState(STATE.MENU);
       };
 
       Game.prototype.pause = function() {
         this.emit('pause');
         this.ticker.stop();
-        this.state = STATE.PAUSED;
-        return console.log(this.state);
+        return this.setState(STATE.PAUSED);
       };
 
       Game.prototype.restart = function() {
@@ -411,9 +415,7 @@
           };
         })(this), [STATE.MENU, STATE.PAUSED]);
         zz.game.on('start', (function(_this) {
-          return function() {
-            return $('.main').hide();
-          };
+          return function() {};
         })(this));
         zz.game.on('pause', (function(_this) {
           return function() {
@@ -428,6 +430,12 @@
         zz.game.on('stop', (function(_this) {
           return function() {
             return window.location = '/';
+          };
+        })(this));
+        zz.game.on('state', (function(_this) {
+          return function(state) {
+            $('body').attr('class', '');
+            return $('body').addClass("state-" + state);
           };
         })(this));
         this.setUpMenu();
@@ -558,8 +566,7 @@
           b = ref[k];
           this.renderBlock(b);
         }
-        this.renderCursor(this.board.cursor);
-        return this.renderScore();
+        return this.renderCursor(this.board.cursor);
       };
 
       BoardRenderer.prototype.renderBackground = function() {};
@@ -604,11 +611,37 @@
         this.animate('loss');
         this.animate('dispersal');
         this.animate('addGroup');
-        return this.board.on('remove', (function(_this) {
+        this.board.on('remove', (function(_this) {
           return function(b) {
             return _this.stage.removeChild(b);
           };
         })(this));
+        this.board.on('scoreChange', (function(_this) {
+          return function() {
+            return _this.renderScore();
+          };
+        })(this));
+        this.board.on('logScore', (function(_this) {
+          return function(score) {
+            if (!(score >= 50)) {
+              return;
+            }
+            $('<div></div>', {
+              "class": 'color'
+            }).insertAfter($('.combos').children().first()).html(score);
+            if ($('.combos').length > 20) {
+              return $('.combos').children().last.remove();
+            }
+          };
+        })(this));
+        return this.renderScore();
+      };
+
+      CanvasBoardRenderer.prototype.initScore = function() {
+        $("#player-" + this.board.id + " .scoreboard").show();
+        if (this.board.id > 0) {
+          return $('.combos').hide();
+        }
       };
 
       CanvasBoardRenderer.prototype.initBlock = function(block) {
@@ -659,9 +692,8 @@
       };
 
       CanvasBoardRenderer.prototype.renderScore = function() {
-        if (this.board.id === 0) {
-          return $('#score').html(this.board.score);
-        }
+        $("#player-" + this.board.id + " .score").html(this.board.score);
+        return $("#player-" + this.board.id + " .speed").html(this.board.speedLevel);
       };
 
       CanvasBoardRenderer.prototype.animate = function(event) {
@@ -1375,10 +1407,6 @@
 
       Board.prototype.height = 10;
 
-      Board.prototype.speed = 60 * 15;
-
-      Board.prototype.counter = 0;
-
       function Board(id1, clone) {
         this.id = id1;
         if (clone == null) {
@@ -1390,6 +1418,10 @@
         this.score = 0;
         this.opponent = null;
         this.lost = false;
+        this.counter = 0;
+        this.speed = 60 * 15;
+        this.speedLevel = 1;
+        this.speedCounter = 0;
         Object.defineProperty(this, 'grid', {
           get: (function(_this) {
             return function() {
@@ -1512,13 +1544,19 @@
       };
 
       Board.prototype.tick = function() {
-        if (!this.paused) {
-          this.counter++;
+        if (this.paused) {
+          return;
         }
+        this.counter++;
+        this.speedCounter++;
         if (this.counter > this.speed) {
           this.counter = 0;
           this.pushRow();
-          return this.speed *= 0.95;
+        }
+        if (this.speedCounter % (60 * 15) === 0) {
+          this.speedLevel++;
+          this.speed *= 0.95;
+          return this.emit('scoreChange');
         }
       };
 
@@ -1755,6 +1793,7 @@
           score += mult * set.length * 10;
           mult += 1;
         }
+        this.emit('scoreChange');
         return score;
       };
 
@@ -1855,6 +1894,7 @@
 
       Board.prototype.sendBlocks = function(score) {
         var dim, h, shapes, thresh, w, x, y;
+        this.emit('logScore', score);
         if (this.opponent == null) {
           return;
         }

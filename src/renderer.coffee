@@ -41,7 +41,6 @@ class BoardRenderer extends Base
     render: ()->
         @renderBlock b for b in @board.blocks
         @renderCursor @board.cursor
-        @renderScore()
 
     renderBackground: ->
     renderBlock:  (block)->

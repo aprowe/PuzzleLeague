@@ -187,9 +187,9 @@ root = if window? then window else this
 
     ## Game States
     STATE = 
-    	MENU: '-Menu'
-    	PLAYING: '-Playing'
-    	PAUSED: '-Paused'
+    	MENU: 'menu'
+    	PLAYING: 'playing'
+    	PAUSED: 'paused'
 
     ############################################
     ## Game Class singleton
@@ -244,8 +244,9 @@ root = if window? then window else this
     		## Start Menu Manager
     		@manager = new Manager
 
-
-
+    	setState: (state)->
+    		@state = state
+    		@emit 'state', state
 
     	initBoards: ->
     		@boards = []
@@ -282,7 +283,7 @@ root = if window? then window else this
     		@ticker.start()
 
     		## Change State
-    		@state = STATE.PLAYING
+    		@setState STATE.PLAYING
 
     		## emit start 
     		@emit 'start'
@@ -291,7 +292,9 @@ root = if window? then window else this
     	continue: ->
     		@emit 'continue'
     		@ticker.start()
-    		@state = STATE.PLAYING
+
+    		## Change State
+    		@setState STATE.PLAYING
 
     	stop: ->
     		@emit 'stop'
@@ -299,14 +302,15 @@ root = if window? then window else this
     		delete @boards
     		delete @ticker
 
-    		@state = STATE.MENU
+    		## Change State
+    		@setState STATE.MENU
 
     	pause: ->
     		@emit 'pause'
     		@ticker.stop()
 
-    		@state = STATE.PAUSED
-    		console.log @state
+    		## Change State
+    		@setState STATE.PAUSED
 
     	restart: ->
     		@stop()
@@ -376,7 +380,6 @@ root = if window? then window else this
             , [STATE.MENU, STATE.PAUSED]
 
             zz.game.on 'start', =>
-                $('.main').hide()
 
             zz.game.on 'pause', =>
                 @showMenu 'pause'
@@ -386,6 +389,10 @@ root = if window? then window else this
 
             zz.game.on 'stop', =>
                 window.location = '/'
+
+            zz.game.on 'state', (state)=>
+                $('body').attr('class', '')
+                $('body').addClass "state-#{state}"
 
             @setUpMenu()
 
@@ -474,7 +481,6 @@ root = if window? then window else this
         render: ()->
             @renderBlock b for b in @board.blocks
             @renderCursor @board.cursor
-            @renderScore()
 
         renderBackground: ->
         renderBlock:  (block)->
@@ -518,6 +524,23 @@ root = if window? then window else this
 
             @board.on 'remove', (b)=>
                 @stage.removeChild b
+
+            @board.on 'scoreChange', =>
+                @renderScore()
+
+            @board.on 'logScore', (score)=>
+                return unless score >= 50
+                $('<div></div>', class: 'color').insertAfter $('.combos').children().first()
+                    .html (score)
+
+                if $('.combos').length > 20
+                    $('.combos').children().last.remove()
+
+            @renderScore()
+
+        initScore: ->
+            $("#player-#{@board.id} .scoreboard").show()
+            $('.combos').hide() if @board.id > 0
 
         initBlock: (block)->
 
@@ -570,9 +593,10 @@ root = if window? then window else this
             b.s.x = pos.x + 1 
             b.s.y = pos.y - @offset() + 1
 
+
         renderScore: ->
-            if (@board.id == 0)
-                $('#score').html(@board.score)
+            $("#player-#{@board.id} .score").html(@board.score)
+            $("#player-#{@board.id} .speed").html(@board.speedLevel)
 
         #################################
         # Animations
@@ -1086,12 +1110,6 @@ root = if window? then window else this
         ## Height of board
         height: 10
 
-        ## Speed of the rows raising (frames per row)
-        speed: 60*15
-
-        ## Counter to keep track of the rows rising
-        counter: 0
-
         constructor: (@id, clone=false)->
             super
 
@@ -1109,6 +1127,16 @@ root = if window? then window else this
 
             ## indicates this game is lost or not
             @lost = false
+
+            ## Keeps track of the row increment
+            @counter = 0 
+
+            ## Speed of rows rising
+            @speed = 60*15
+
+            @speedLevel = 1
+
+            @speedCounter = 0 
 
             ## Set up easy grid getter
             Object.defineProperty this, 'grid', get: => @blockArray()
@@ -1200,12 +1228,19 @@ root = if window? then window else this
         ##
         # Main loop, pushing up rows
         tick: ()->
-            @counter++ unless @paused
+            return if @paused
+
+            @counter++
+            @speedCounter++
 
             if @counter > @speed
                 @counter = 0
                 @pushRow() 
+
+            if @speedCounter % (60 * 15) == 0
+                @speedLevel++
                 @speed *= 0.95
+                @emit 'scoreChange'
 
         ## 
         # Push up a row
@@ -1382,6 +1417,7 @@ root = if window? then window else this
                 score += mult * set.length * 10
                 mult += 1
 
+            @emit 'scoreChange'
             return score
 
         ## 
@@ -1464,6 +1500,7 @@ root = if window? then window else this
 
 
         sendBlocks: (score)->
+            @emit 'logScore', score
             return unless @opponent?
             # return if score < 50
 

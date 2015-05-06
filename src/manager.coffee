@@ -55,7 +55,6 @@ class Manager
         , [STATE.MENU, STATE.PAUSED]
 
         zz.game.on 'start', =>
-            $('.main').hide()
 
         zz.game.on 'pause', =>
             @showMenu 'pause'
@@ -65,6 +64,10 @@ class Manager
 
         zz.game.on 'stop', =>
             window.location = '/'
+
+        zz.game.on 'state', (state)=>
+            $('body').attr('class', '')
+            $('body').addClass "state-#{state}"
 
         @setUpMenu()
 

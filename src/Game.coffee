@@ -1,8 +1,8 @@
 ## Game States
 STATE = 
-	MENU: '-Menu'
-	PLAYING: '-Playing'
-	PAUSED: '-Paused'
+	MENU: 'menu'
+	PLAYING: 'playing'
+	PAUSED: 'paused'
 
 ############################################
 ## Game Class singleton
@@ -57,8 +57,9 @@ class Game extends Base
 		## Start Menu Manager
 		@manager = new Manager
 
-
-
+	setState: (state)->
+		@state = state
+		@emit 'state', state
 
 	initBoards: ->
 		@boards = []
@@ -95,7 +96,7 @@ class Game extends Base
 		@ticker.start()
 
 		## Change State
-		@state = STATE.PLAYING
+		@setState STATE.PLAYING
 
 		## emit start 
 		@emit 'start'
@@ -104,7 +105,9 @@ class Game extends Base
 	continue: ->
 		@emit 'continue'
 		@ticker.start()
-		@state = STATE.PLAYING
+
+		## Change State
+		@setState STATE.PLAYING
 
 	stop: ->
 		@emit 'stop'
@@ -112,14 +115,15 @@ class Game extends Base
 		delete @boards
 		delete @ticker
 
-		@state = STATE.MENU
+		## Change State
+		@setState STATE.MENU
 
 	pause: ->
 		@emit 'pause'
 		@ticker.stop()
 
-		@state = STATE.PAUSED
-		console.log @state
+		## Change State
+		@setState STATE.PAUSED
 
 	restart: ->
 		@stop()

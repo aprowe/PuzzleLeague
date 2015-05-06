@@ -28,6 +28,23 @@ class CanvasBoardRenderer extends BoardRenderer
         @board.on 'remove', (b)=>
             @stage.removeChild b
 
+        @board.on 'scoreChange', =>
+            @renderScore()
+
+        @board.on 'logScore', (score)=>
+            return unless score >= 50
+            $('<div></div>', class: 'color').insertAfter $('.combos').children().first()
+                .html (score)
+
+            if $('.combos').length > 20
+                $('.combos').children().last.remove()
+
+        @renderScore()
+
+    initScore: ->
+        $("#player-#{@board.id} .scoreboard").show()
+        $('.combos').hide() if @board.id > 0
+
     initBlock: (block)->
 
         animation = 'still'
@@ -79,9 +96,10 @@ class CanvasBoardRenderer extends BoardRenderer
         b.s.x = pos.x + 1 
         b.s.y = pos.y - @offset() + 1
 
+
     renderScore: ->
-        if (@board.id == 0)
-            $('#score').html(@board.score)
+        $("#player-#{@board.id} .score").html(@board.score)
+        $("#player-#{@board.id} .speed").html(@board.speedLevel)
 
     #################################
     # Animations
