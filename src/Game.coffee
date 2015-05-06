@@ -64,7 +64,7 @@ class Game extends Base
 	initBoards: ->
 		@boards = []
 		@boards.push new Board(0)
-		new PlayerController @boards[0]
+		new ComputerController @boards[0]
 
 		if @settings.players == 2
 			@boards.push new Board(1)

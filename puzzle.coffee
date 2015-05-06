@@ -251,7 +251,7 @@ root = if window? then window else this
     	initBoards: ->
     		@boards = []
     		@boards.push new Board(0)
-    		new PlayerController @boards[0]
+    		new ComputerController @boards[0]
 
     		if @settings.players == 2
     			@boards.push new Board(1)
@@ -1108,7 +1108,7 @@ root = if window? then window else this
         width: 8
 
         ## Height of board
-        height: 10
+        height: 12
 
         constructor: (@id, clone=false)->
             super
@@ -1417,7 +1417,6 @@ root = if window? then window else this
                 score += mult * set.length * 10
                 mult += 1
 
-            @emit 'scoreChange'
             return score
 
         ## 
@@ -1501,15 +1500,15 @@ root = if window? then window else this
 
         sendBlocks: (score)->
             @emit 'logScore', score
+            @emit 'scoreChange'
             return unless @opponent?
             # return if score < 50
 
             shapes = 
                 # 20:  [7,3]
-                100: [3,2]
-                150: [7,2]
-                200: [3,3]
-                300: [7,3]
+                100: [8,1]
+                200: [8,2]
+                300: [8,3]
 
 
             for thresh, dim of shapes

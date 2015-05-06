@@ -281,14 +281,6 @@ class CanvasBoardRenderer extends BoardRenderer
         @sprites.push new createjs.SpriteSheet data
 
 
-class Animation
-
-    constructor: (@parent, @length)->
-
-    run: ()->
-
-    callback: ()->
-
 class CanvasRenderer extends Renderer
 
     boardRenderer: CanvasBoardRenderer

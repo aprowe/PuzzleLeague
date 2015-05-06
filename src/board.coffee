@@ -7,7 +7,7 @@ zz.class.board = class Board extends zz.class.base
     width: 8
 
     ## Height of board
-    height: 10
+    height: 12
 
     constructor: (@id, clone=false)->
         super
@@ -316,7 +316,6 @@ zz.class.board = class Board extends zz.class.base
             score += mult * set.length * 10
             mult += 1
 
-        @emit 'scoreChange'
         return score
 
     ## 
@@ -400,15 +399,15 @@ zz.class.board = class Board extends zz.class.base
 
     sendBlocks: (score)->
         @emit 'logScore', score
+        @emit 'scoreChange'
         return unless @opponent?
         # return if score < 50
 
         shapes = 
             # 20:  [7,3]
-            100: [3,2]
-            150: [7,2]
-            200: [3,3]
-            300: [7,3]
+            100: [8,1]
+            200: [8,2]
+            300: [8,3]
 
 
         for thresh, dim of shapes

@@ -281,7 +281,7 @@
       Game.prototype.initBoards = function() {
         this.boards = [];
         this.boards.push(new Board(0));
-        new PlayerController(this.boards[0]);
+        new ComputerController(this.boards[0]);
         if (this.settings.players === 2) {
           this.boards.push(new Board(1));
           this.boards[0].opponent = this.boards[1];
@@ -1405,7 +1405,7 @@
 
       Board.prototype.width = 8;
 
-      Board.prototype.height = 10;
+      Board.prototype.height = 12;
 
       function Board(id1, clone) {
         this.id = id1;
@@ -1793,7 +1793,6 @@
           score += mult * set.length * 10;
           mult += 1;
         }
-        this.emit('scoreChange');
         return score;
       };
 
@@ -1895,14 +1894,14 @@
       Board.prototype.sendBlocks = function(score) {
         var dim, h, shapes, thresh, w, x, y;
         this.emit('logScore', score);
+        this.emit('scoreChange');
         if (this.opponent == null) {
           return;
         }
         shapes = {
-          100: [3, 2],
-          150: [7, 2],
-          200: [3, 3],
-          300: [7, 3]
+          100: [8, 1],
+          200: [8, 2],
+          300: [8, 3]
         };
         for (thresh in shapes) {
           dim = shapes[thresh];
