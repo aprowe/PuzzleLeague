@@ -60,18 +60,19 @@ body {
 .menu {
 	display: none;
 
+	&.active {
+		display: block;
+	}
+
 	& > div {
 		font-size: 300%;
 		cursor: pointer;
 
-		&:hover {
+		&.highlight {
 			color: #CFCC1F;
 		}
 	}
 
-	&:first-of-type {
-		display: block;
-	}
 }
 
 

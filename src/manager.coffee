@@ -24,13 +24,19 @@ class Manager
 
                 @startGame()
 
-            continue: => 
-                @game.start()
-                $('#pause').hide()
+            continue: => @pauseResume()
 
             exit: => @endGame()
 
-        $ => @setUpMenu()
+        zz.keyListener.on 'ESC', (=> @pauseResume())
+        zz.keyListener.on 'ESC', (=> @pauseResume()), 'menu'
+        zz.keyListener.on 'DOWN', (=> @highlight(1)), 'menu'
+        zz.keyListener.on 'UP', (=> @highlight(-1)), 'menu'
+        zz.keyListener.on 'SPACE', (=> @highlight(0)), 'menu'
+        zz.keyListener.on 'RETURN', (=> @highlight(0)), 'menu'
+
+        $ => 
+            @setUpMenu()
 
     setUpMenu: ->
         that = this
@@ -44,24 +50,50 @@ class Manager
             action = $(this).data 'action'
             that.actions[action].call(that) if action?
 
+        .mouseover -> that.highlight $(this)
+
+        @showMenu('main')
 
     showMenu: (id)->
-        @menus.hide()
-        $(".menu##{id}").show()
+        $('.menu.active').removeClass 'active'
+        menu = $(".menu##{id}").addClass('active')
+        @highlight menu.children().first()
+
+    highlight: (index)->
+        if index == 0 and $('.highlight').length != 0 
+            $('.highlight').click()
+            return
+
+        if index? and index.jquery?
+            $('.highlight').removeClass('highlight')
+            index.addClass ('highlight')
+            return
+
+        item = $('.menu.active .highlight')
+
+        if item.length == 0 
+            @highlight $('.menu.active').children().first()
+            return
+
+        @highlight item.next() if index == 1 and item.next().length > 0 
+        @highlight item.prev() if index == -1 and item.prev().length > 0 
 
     startGame: (mode)->
         $('.main').hide()
         @game = new Game(@settings)
         @game.start()
+        zz.keyListener.state = 'default'
     
-    pause: ()->
-        console.log @game.ticker
+    pauseResume: ()->
         if @game.ticker.running
             @game.pause()
-            $('#pause').show()
+            @showMenu 'pause'
+            zz.keyListener.state = 'menu'
         else 
-            @game.start()
-            $('#pause').hide()
+            @game.continue()
+            $('#pause').removeClass('active')
+            zz.keyListener.state = 'default'
+            
 
     endGame: ->
         window.location = '/'
@@ -69,3 +101,4 @@ class Manager
         $('.main').show()
         $('.puzzle').hide()
         @showMenu('main')
+

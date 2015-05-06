@@ -30,10 +30,10 @@ class SoundController extends Base
 
 	constructor: (@board)->
 		for event in @events
-			@board.on event.on, ((e)->
-				console.log e
-				-> createjs.Sound.play e.sound, e.settings
+			@board.on event.on, ((e)=> =>
+				createjs.Sound.play e.sound, e.settings
 			)(event)
+
 			
 
 class MusicController extends Base
@@ -58,11 +58,19 @@ class MusicController extends Base
 		createjs.Sound.registerSounds files
 
 	constructor: (@game)->
+		@current = null
+
 		@game.on 'start', =>
-			intro = createjs.Sound.play 'intro'
-			intro.on 'complete', =>
-				mid = createjs.Sound.play 'mid'
-				mid.loop = true
+			@current = createjs.Sound.play 'intro'
+			@current.on 'complete', =>
+				@current = createjs.Sound.play 'mid'
+				@current.loop = true
+
+		@game.on 'pause', =>
+			@current.volume = 0.1
+
+		@game.on 'continue', =>
+			@current.volume = 1.0
 
 
 $ ->

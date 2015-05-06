@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ComputerController, Controller, EventController, Game, GrayBlock, Manager, MusicController, Positional, Renderer, SoundController, Ticker, forall, zz;
+    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ComputerController, Controller, Game, GrayBlock, KeyListener, Manager, MusicController, PlayerController, Positional, Renderer, SoundController, Ticker, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -82,20 +82,19 @@
       };
 
       Base.prototype.emit = function(event, args) {
-        var fn, k, len, ref, results;
+        var fn, k, len, ref;
         if (this['on' + event] != null) {
           this['on' + event].call(this, args);
         }
         if (this._events[event] == null) {
-          return;
+          return false;
         }
         ref = this._events[event];
-        results = [];
         for (k = 0, len = ref.length; k < len; k++) {
           fn = ref[k];
-          results.push(fn.call(this, args));
+          fn.call(this, args);
         }
-        return results;
+        return true;
       };
 
       Base.prototype.done = function(event, args) {
@@ -249,12 +248,12 @@
         })(this));
         this.initBoards(this.settings.players);
         this.renderer = new CanvasRenderer(this);
-        new EventController(this.boards[0]);
+        new PlayerController(this.boards[0]);
         if (this.boards.length > 1) {
           if (this.settings.computer) {
             new ComputerController(this.boards[1]);
           } else {
-            new EventController(this.boards[1]);
+            new PlayerController(this.boards[1]);
           }
         }
         this.soundsControllers = (function() {
@@ -284,6 +283,11 @@
 
       Game.prototype.start = function() {
         this.emit('start');
+        return this.ticker.start();
+      };
+
+      Game.prototype["continue"] = function() {
+        this.emit('continue');
         return this.ticker.start();
       };
 
@@ -333,8 +337,7 @@
           })(this),
           "continue": (function(_this) {
             return function() {
-              _this.game.start();
-              return $('#pause').hide();
+              return _this.pauseResume();
             };
           })(this),
           exit: (function(_this) {
@@ -343,6 +346,36 @@
             };
           })(this)
         };
+        zz.keyListener.on('ESC', ((function(_this) {
+          return function() {
+            return _this.pauseResume();
+          };
+        })(this)));
+        zz.keyListener.on('ESC', ((function(_this) {
+          return function() {
+            return _this.pauseResume();
+          };
+        })(this)), 'menu');
+        zz.keyListener.on('DOWN', ((function(_this) {
+          return function() {
+            return _this.highlight(1);
+          };
+        })(this)), 'menu');
+        zz.keyListener.on('UP', ((function(_this) {
+          return function() {
+            return _this.highlight(-1);
+          };
+        })(this)), 'menu');
+        zz.keyListener.on('SPACE', ((function(_this) {
+          return function() {
+            return _this.highlight(0);
+          };
+        })(this)), 'menu');
+        zz.keyListener.on('RETURN', ((function(_this) {
+          return function() {
+            return _this.highlight(0);
+          };
+        })(this)), 'menu');
         $((function(_this) {
           return function() {
             return _this.setUpMenu();
@@ -354,7 +387,7 @@
         var that;
         that = this;
         this.menus = $('.menu');
-        return this.menus.find('div').click(function() {
+        this.menus.find('div').click(function() {
           var action, id;
           id = $(this).data('menu');
           if (id != null) {
@@ -364,28 +397,59 @@
           if (action != null) {
             return that.actions[action].call(that);
           }
+        }).mouseover(function() {
+          return that.highlight($(this));
         });
+        return this.showMenu('main');
       };
 
       Manager.prototype.showMenu = function(id) {
-        this.menus.hide();
-        return $(".menu#" + id).show();
+        var menu;
+        $('.menu.active').removeClass('active');
+        menu = $(".menu#" + id).addClass('active');
+        return this.highlight(menu.children().first());
+      };
+
+      Manager.prototype.highlight = function(index) {
+        var item;
+        if (index === 0 && $('.highlight').length !== 0) {
+          $('.highlight').click();
+          return;
+        }
+        if ((index != null) && (index.jquery != null)) {
+          $('.highlight').removeClass('highlight');
+          index.addClass('highlight');
+          return;
+        }
+        item = $('.menu.active .highlight');
+        if (item.length === 0) {
+          this.highlight($('.menu.active').children().first());
+          return;
+        }
+        if (index === 1 && item.next().length > 0) {
+          this.highlight(item.next());
+        }
+        if (index === -1 && item.prev().length > 0) {
+          return this.highlight(item.prev());
+        }
       };
 
       Manager.prototype.startGame = function(mode) {
         $('.main').hide();
         this.game = new Game(this.settings);
-        return this.game.start();
+        this.game.start();
+        return zz.keyListener.state = 'default';
       };
 
-      Manager.prototype.pause = function() {
-        console.log(this.game.ticker);
+      Manager.prototype.pauseResume = function() {
         if (this.game.ticker.running) {
           this.game.pause();
-          return $('#pause').show();
+          this.showMenu('pause');
+          return zz.keyListener.state = 'menu';
         } else {
-          this.game.start();
-          return $('#pause').hide();
+          this.game["continue"]();
+          $('#pause').removeClass('active');
+          return zz.keyListener.state = 'default';
         }
       };
 
@@ -883,68 +947,130 @@
       return CanvasRenderer;
 
     })(Renderer);
-    zz["class"].controller = Controller = (function(superClass) {
+    KeyListener = (function(superClass) {
+      extend(KeyListener, superClass);
+
+      KeyListener.prototype.state = 'menu';
+
+      KeyListener.prototype.MAP = {
+        LEFT: 37,
+        UP: 38,
+        RIGHT: 39,
+        DOWN: 40,
+        SPACE: 32,
+        RETURN: 13,
+        ESC: 27
+      };
+
+      function KeyListener() {
+        KeyListener.__super__.constructor.apply(this, arguments);
+        this.listening = true;
+        $((function(_this) {
+          return function() {
+            return $('body').keydown(function(e) {
+              if (!_this.listening) {
+                return;
+              }
+              if (_this.emit(_this.state + e.which)) {
+                return e.preventDefault(e);
+              }
+            });
+          };
+        })(this));
+      }
+
+      KeyListener.prototype.on = function(key, fn, state) {
+        if (state == null) {
+          state = 'default';
+        }
+        if (this.MAP[key] != null) {
+          key = this.MAP[key];
+        }
+        key = state + key;
+        return KeyListener.__super__.on.call(this, key, fn);
+      };
+
+      KeyListener.prototype.start = function() {
+        return this.listening = false;
+      };
+
+      KeyListener.prototype.stop = function() {
+        return this.listening = true;
+      };
+
+      return KeyListener;
+
+    })(Base);
+    Controller = (function(superClass) {
       extend(Controller, superClass);
 
       Controller.prototype.board = {};
 
       Controller.state = null;
 
-      function Controller(board1, state) {
+      function Controller(board1, state1) {
         this.board = board1;
-        this.state = state != null ? state : 'playing';
+        this.state = state1 != null ? state1 : 'playing';
         Controller.__super__.constructor.apply(this, arguments);
+        this.active = true;
+        zz.game.on('pause', (function(_this) {
+          return function() {
+            return _this.active = false;
+          };
+        })(this));
+        zz.game.on('continue', (function(_this) {
+          return function() {
+            return _this.active = true;
+          };
+        })(this));
       }
 
-      Controller.prototype.keys = ['up', 'down', 'left', 'right', 'swap', 'advance', 'exit'];
+      Controller.prototype.keys = ['up', 'down', 'left', 'right', 'swap', 'advance'];
 
-      Controller.prototype.states = {
-        playing: {
-          up: function() {
-            return this.board.moveCursor(0, 1);
-          },
-          down: function() {
-            return this.board.moveCursor(0, -1);
-          },
-          left: function() {
-            return this.board.moveCursor(-1, 0);
-          },
-          right: function() {
-            return this.board.moveCursor(1, 0);
-          },
-          swap: function() {
-            return this.board.swap();
-          },
-          advance: function() {
-            return this.board.counter += 30;
-          },
-          exit: function() {
-            return zz.manager.pause();
-          }
+      Controller.prototype.events = {
+        up: function() {
+          return this.board.moveCursor(0, 1);
+        },
+        down: function() {
+          return this.board.moveCursor(0, -1);
+        },
+        left: function() {
+          return this.board.moveCursor(-1, 0);
+        },
+        right: function() {
+          return this.board.moveCursor(1, 0);
+        },
+        swap: function() {
+          return this.board.swap();
+        },
+        advance: function() {
+          return this.board.counter += 30;
         }
       };
 
       Controller.prototype.dispatch = function(key, args) {
-        if (this.states[this.state][key] != null) {
-          return this.states[this.state][key].call(this, args);
+        if (!this.active) {
+          return;
+        }
+        if (this.events[key] != null) {
+          return this.events[key].call(this, args);
         }
       };
 
       return Controller;
 
     })(Base);
-    zz["class"].eventController = EventController = (function(superClass) {
-      extend(EventController, superClass);
+    PlayerController = (function(superClass) {
+      extend(PlayerController, superClass);
 
-      EventController.prototype.MAPS = [
+      PlayerController.prototype.keyMaps = [
         {
-          37: 'left',
-          38: 'up',
-          39: 'right',
-          40: 'down',
-          32: 'swap',
-          13: 'advance',
-          27: 'exit'
+          LEFT: 'left',
+          UP: 'up',
+          RIGHT: 'right',
+          DOWN: 'down',
+          SPACE: 'swap',
+          ESC: 'exit'
         }, {
           65: 'left',
           87: 'up',
@@ -954,27 +1080,27 @@
         }
       ];
 
-      function EventController(board1) {
+      function PlayerController(board1) {
+        var key, ref, value;
         this.board = board1;
-        EventController.__super__.constructor.call(this, this.board);
-        this.map = this.MAPS[this.board.id];
-        $((function(_this) {
-          return function() {
-            return $('body').keydown(function(e) {
-              var key;
-              key = _this.map[e.which];
-              if (key != null) {
-                e.preventDefault(e);
-                return _this.dispatch(key);
-              }
-            });
-          };
-        })(this));
+        PlayerController.__super__.constructor.call(this, this.board);
+        this.map = this.keyMaps[this.board.id];
+        ref = this.map;
+        for (key in ref) {
+          value = ref[key];
+          zz.keyListener.on(key, ((function(_this) {
+            return function(v) {
+              return function() {
+                return _this.dispatch(v);
+              };
+            };
+          })(this))(value));
+        }
       }
 
-      return EventController;
+      return PlayerController;
 
-    })(zz["class"].controller);
+    })(Controller);
     ComputerController = (function(superClass) {
       extend(ComputerController, superClass);
 
@@ -1165,12 +1291,13 @@
         ref = this.events;
         for (k = 0, len = ref.length; k < len; k++) {
           event = ref[k];
-          this.board.on(event.on, (function(e) {
-            console.log(e);
-            return function() {
-              return createjs.Sound.play(e.sound, e.settings);
+          this.board.on(event.on, ((function(_this) {
+            return function(e) {
+              return function() {
+                return createjs.Sound.play(e.sound, e.settings);
+              };
             };
-          })(event));
+          })(this))(event));
         }
       }
 
@@ -1201,15 +1328,24 @@
 
       function MusicController(game) {
         this.game = game;
+        this.current = null;
         this.game.on('start', (function(_this) {
           return function() {
-            var intro;
-            intro = createjs.Sound.play('intro');
-            return intro.on('complete', function() {
-              var mid;
-              mid = createjs.Sound.play('mid');
-              return mid.loop = true;
+            _this.current = createjs.Sound.play('intro');
+            return _this.current.on('complete', function() {
+              _this.current = createjs.Sound.play('mid');
+              return _this.current.loop = true;
             });
+          };
+        })(this));
+        this.game.on('pause', (function(_this) {
+          return function() {
+            return _this.current.volume = 0.1;
+          };
+        })(this));
+        this.game.on('continue', (function(_this) {
+          return function() {
+            return _this.current.volume = 1.0;
           };
         })(this));
       }
@@ -1228,7 +1364,7 @@
 
       Board.prototype.height = 10;
 
-      Board.prototype.speed = 60 * 7;
+      Board.prototype.speed = 60 * 15;
 
       Board.prototype.counter = 0;
 
@@ -1841,6 +1977,7 @@
       return BlockGroup;
 
     })(Positional);
+    zz.keyListener = new KeyListener();
     zz.manager = new Manager();
     return zz;
   });

@@ -39,13 +39,13 @@ body {
  */
 .menu {
   display: none; }
+  .menu.active {
+    display: block; }
   .menu > div {
     font-size: 300%;
     cursor: pointer; }
-    .menu > div:hover {
+    .menu > div.highlight {
       color: #CFCC1F; }
-  .menu:first-of-type {
-    display: block; }
 
 .pause {
   background: rgba(0, 0, 0, 0.5);

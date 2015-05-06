@@ -33,8 +33,9 @@ zz.class.base = class Base
 	emit: (event, args)->
 		## Call the function on<event>
 		this['on'+event].call(this, args) if this['on'+event]?
-		return unless @_events[event]?
+		return false unless @_events[event]?
 		fn.call(this, args) for fn in @_events[event]
+		return true
 
 	done: (event, args)->
 		return unless @_queue[event]?

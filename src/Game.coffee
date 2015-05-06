@@ -36,13 +36,13 @@ zz.class.game = class Game extends Base
 
 		@renderer = new CanvasRenderer(this)
 
-		new EventController @boards[0]
+		new PlayerController @boards[0]
 
 		if @boards.length > 1
 			if @settings.computer
 				new ComputerController @boards[1]
 			else
-				new EventController @boards[1] 
+				new PlayerController @boards[1] 
 
 
 		@soundsControllers = (new SoundController(b) for b in @boards)
@@ -63,6 +63,10 @@ zz.class.game = class Game extends Base
 	## Start Ticker and game
 	start: ->
 		@emit 'start'
+		@ticker.start()
+
+	continue: ->
+		@emit 'continue'
 		@ticker.start()
 
 	## Main Game Loop

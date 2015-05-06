@@ -91,8 +91,9 @@ root = if window? then window else this
     	emit: (event, args)->
     		## Call the function on<event>
     		this['on'+event].call(this, args) if this['on'+event]?
-    		return unless @_events[event]?
+    		return false unless @_events[event]?
     		fn.call(this, args) for fn in @_events[event]
+    		return true
 
     	done: (event, args)->
     		return unless @_queue[event]?
@@ -221,13 +222,13 @@ root = if window? then window else this
 
     		@renderer = new CanvasRenderer(this)
 
-    		new EventController @boards[0]
+    		new PlayerController @boards[0]
 
     		if @boards.length > 1
     			if @settings.computer
     				new ComputerController @boards[1]
     			else
-    				new EventController @boards[1] 
+    				new PlayerController @boards[1] 
 
 
     		@soundsControllers = (new SoundController(b) for b in @boards)
@@ -248,6 +249,10 @@ root = if window? then window else this
     	## Start Ticker and game
     	start: ->
     		@emit 'start'
+    		@ticker.start()
+
+    	continue: ->
+    		@emit 'continue'
     		@ticker.start()
 
     	## Main Game Loop
@@ -293,13 +298,19 @@ root = if window? then window else this
 
                     @startGame()
 
-                continue: => 
-                    @game.start()
-                    $('#pause').hide()
+                continue: => @pauseResume()
 
                 exit: => @endGame()
 
-            $ => @setUpMenu()
+            zz.keyListener.on 'ESC', (=> @pauseResume())
+            zz.keyListener.on 'ESC', (=> @pauseResume()), 'menu'
+            zz.keyListener.on 'DOWN', (=> @highlight(1)), 'menu'
+            zz.keyListener.on 'UP', (=> @highlight(-1)), 'menu'
+            zz.keyListener.on 'SPACE', (=> @highlight(0)), 'menu'
+            zz.keyListener.on 'RETURN', (=> @highlight(0)), 'menu'
+
+            $ => 
+                @setUpMenu()
 
         setUpMenu: ->
             that = this
@@ -313,24 +324,50 @@ root = if window? then window else this
                 action = $(this).data 'action'
                 that.actions[action].call(that) if action?
 
+            .mouseover -> that.highlight $(this)
+
+            @showMenu('main')
 
         showMenu: (id)->
-            @menus.hide()
-            $(".menu##{id}").show()
+            $('.menu.active').removeClass 'active'
+            menu = $(".menu##{id}").addClass('active')
+            @highlight menu.children().first()
+
+        highlight: (index)->
+            if index == 0 and $('.highlight').length != 0 
+                $('.highlight').click()
+                return
+
+            if index? and index.jquery?
+                $('.highlight').removeClass('highlight')
+                index.addClass ('highlight')
+                return
+
+            item = $('.menu.active .highlight')
+
+            if item.length == 0 
+                @highlight $('.menu.active').children().first()
+                return
+
+            @highlight item.next() if index == 1 and item.next().length > 0 
+            @highlight item.prev() if index == -1 and item.prev().length > 0 
 
         startGame: (mode)->
             $('.main').hide()
             @game = new Game(@settings)
             @game.start()
+            zz.keyListener.state = 'default'
         
-        pause: ()->
-            console.log @game.ticker
+        pauseResume: ()->
             if @game.ticker.running
                 @game.pause()
-                $('#pause').show()
+                @showMenu 'pause'
+                zz.keyListener.state = 'menu'
             else 
-                @game.start()
-                $('#pause').hide()
+                @game.continue()
+                $('#pause').removeClass('active')
+                zz.keyListener.state = 'default'
+                
 
         endGame: ->
             window.location = '/'
@@ -338,6 +375,7 @@ root = if window? then window else this
             $('.main').show()
             $('.puzzle').hide()
             @showMenu('main')
+
 
     ################################
     ## Rendering Class
@@ -681,7 +719,41 @@ root = if window? then window else this
     ## Controller Class
     #########################
 
-    zz.class.controller = class Controller extends Base
+    class KeyListener extends Base
+
+        state: 'menu'
+
+        MAP:
+            LEFT:   37
+            UP:     38
+            RIGHT:  39
+            DOWN:   40
+            SPACE:  32
+            RETURN: 13
+            ESC:    27
+
+        constructor: ->
+            super
+            @listening = true
+
+            $ => $('body').keydown (e)=>
+                return unless @listening
+                if @emit @state+e.which 
+                    e.preventDefault(e)
+
+        on: (key, fn, state='default')->
+            key = @MAP[key] if @MAP[key]?
+            key = state+key
+            super key, fn
+
+        start: ()->
+            @listening = false
+
+        stop: ()->
+            @listening = true
+
+
+    class Controller extends Base
 
         board: {}
 
@@ -689,6 +761,13 @@ root = if window? then window else this
 
         constructor: (@board, @state='playing')->
             super
+            @active = true
+
+            zz.game.on 'pause', =>
+                @active = false
+
+            zz.game.on 'continue', =>
+                @active = true
 
         keys: [
             'up',
@@ -697,36 +776,35 @@ root = if window? then window else this
             'right',
             'swap',
             'advance'
-            'exit'
         ]
 
-        states:
-            playing: 
-                up:       -> @board.moveCursor  0, 1
-                down:     -> @board.moveCursor  0,-1
-                left:     -> @board.moveCursor -1, 0
-                right:    -> @board.moveCursor  1, 0
-                swap:     -> @board.swap()
-                advance:  -> @board.counter+=30
-                exit:     -> zz.manager.pause()
+        events:
+            up:       -> @board.moveCursor  0, 1
+            down:     -> @board.moveCursor  0,-1
+            left:     -> @board.moveCursor -1, 0
+            right:    -> @board.moveCursor  1, 0
+            swap:     -> @board.swap()
+            advance:  -> @board.counter+=30
 
         dispatch: (key, args)-> 
-            @states[@state][key].call(this, args) if @states[@state][key]?
+            return unless @active 
+            @events[key].call(this, args) if @events[key]?
 
-    zz.class.eventController = class EventController extends zz.class.controller
+    class PlayerController extends Controller
 
 
-        MAPS: [
+        keyMaps: [
             {
-                37: 'left'
-                38: 'up'
-                39: 'right'
-                40: 'down'
-                32: 'swap'
-                13: 'advance'
-                27: 'exit'
+                ## Player 1
+                LEFT:  'left'
+                UP:    'up'
+                RIGHT: 'right'
+                DOWN:  'down'
+                SPACE: 'swap'
+                ESC:   'exit'
             },
             {
+                ## Player 2
                 65: 'left'
                 87: 'up'
                 68: 'right'
@@ -740,14 +818,12 @@ root = if window? then window else this
         constructor: (@board)->
             super @board
 
-            @map = @MAPS[@board.id]
+            @map = @keyMaps[@board.id]
 
-            $ => $('body').keydown (e)=>
-                # console.log e.which
-                key = @map[e.which]
-                if key?
-                    e.preventDefault(e)
-                    @dispatch key
+            for key, value of @map
+                zz.keyListener.on key, ((v)=>
+                    => @dispatch v
+                )(value)
 
 
     class ComputerController extends Controller
@@ -874,14 +950,6 @@ root = if window? then window else this
 
 
 
-
-
-
-
-
-
-
-
     class SoundController extends Base
 
     	sounds:
@@ -914,10 +982,10 @@ root = if window? then window else this
 
     	constructor: (@board)->
     		for event in @events
-    			@board.on event.on, ((e)->
-    				console.log e
-    				-> createjs.Sound.play e.sound, e.settings
+    			@board.on event.on, ((e)=> =>
+    				createjs.Sound.play e.sound, e.settings
     			)(event)
+
     			
 
     class MusicController extends Base
@@ -942,11 +1010,19 @@ root = if window? then window else this
     		createjs.Sound.registerSounds files
 
     	constructor: (@game)->
+    		@current = null
+
     		@game.on 'start', =>
-    			intro = createjs.Sound.play 'intro'
-    			intro.on 'complete', =>
-    				mid = createjs.Sound.play 'mid'
-    				mid.loop = true
+    			@current = createjs.Sound.play 'intro'
+    			@current.on 'complete', =>
+    				@current = createjs.Sound.play 'mid'
+    				@current.loop = true
+
+    		@game.on 'pause', =>
+    			@current.volume = 0.1
+
+    		@game.on 'continue', =>
+    			@current.volume = 1.0
 
 
     $ ->
@@ -966,7 +1042,7 @@ root = if window? then window else this
         height: 10
 
         ## Speed of the rows raising (frames per row)
-        speed: 60*7
+        speed: 60*15
 
         ## Counter to keep track of the rows rising
         counter: 0
@@ -1443,8 +1519,11 @@ root = if window? then window else this
     		b.canLose = true for b in @blocks
     		@canLose = true
     
+    zz.keyListener = new KeyListener()
+    
     ## Start Menu Manager
     zz.manager = new Manager()
+
 
     return zz
 )

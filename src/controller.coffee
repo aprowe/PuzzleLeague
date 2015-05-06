@@ -3,7 +3,41 @@
 ## Controller Class
 #########################
 
-zz.class.controller = class Controller extends Base
+class KeyListener extends Base
+
+    state: 'menu'
+
+    MAP:
+        LEFT:   37
+        UP:     38
+        RIGHT:  39
+        DOWN:   40
+        SPACE:  32
+        RETURN: 13
+        ESC:    27
+
+    constructor: ->
+        super
+        @listening = true
+
+        $ => $('body').keydown (e)=>
+            return unless @listening
+            if @emit @state+e.which 
+                e.preventDefault(e)
+
+    on: (key, fn, state='default')->
+        key = @MAP[key] if @MAP[key]?
+        key = state+key
+        super key, fn
+
+    start: ()->
+        @listening = false
+
+    stop: ()->
+        @listening = true
+
+
+class Controller extends Base
 
     board: {}
 
@@ -11,6 +45,13 @@ zz.class.controller = class Controller extends Base
 
     constructor: (@board, @state='playing')->
         super
+        @active = true
+
+        zz.game.on 'pause', =>
+            @active = false
+
+        zz.game.on 'continue', =>
+            @active = true
 
     keys: [
         'up',
@@ -19,36 +60,35 @@ zz.class.controller = class Controller extends Base
         'right',
         'swap',
         'advance'
-        'exit'
     ]
 
-    states:
-        playing: 
-            up:       -> @board.moveCursor  0, 1
-            down:     -> @board.moveCursor  0,-1
-            left:     -> @board.moveCursor -1, 0
-            right:    -> @board.moveCursor  1, 0
-            swap:     -> @board.swap()
-            advance:  -> @board.counter+=30
-            exit:     -> zz.manager.pause()
+    events:
+        up:       -> @board.moveCursor  0, 1
+        down:     -> @board.moveCursor  0,-1
+        left:     -> @board.moveCursor -1, 0
+        right:    -> @board.moveCursor  1, 0
+        swap:     -> @board.swap()
+        advance:  -> @board.counter+=30
 
     dispatch: (key, args)-> 
-        @states[@state][key].call(this, args) if @states[@state][key]?
+        return unless @active 
+        @events[key].call(this, args) if @events[key]?
 
-zz.class.eventController = class EventController extends zz.class.controller
+class PlayerController extends Controller
 
 
-    MAPS: [
+    keyMaps: [
         {
-            37: 'left'
-            38: 'up'
-            39: 'right'
-            40: 'down'
-            32: 'swap'
-            13: 'advance'
-            27: 'exit'
+            ## Player 1
+            LEFT:  'left'
+            UP:    'up'
+            RIGHT: 'right'
+            DOWN:  'down'
+            SPACE: 'swap'
+            ESC:   'exit'
         },
         {
+            ## Player 2
             65: 'left'
             87: 'up'
             68: 'right'
@@ -62,14 +102,12 @@ zz.class.eventController = class EventController extends zz.class.controller
     constructor: (@board)->
         super @board
 
-        @map = @MAPS[@board.id]
+        @map = @keyMaps[@board.id]
 
-        $ => $('body').keydown (e)=>
-            # console.log e.which
-            key = @map[e.which]
-            if key?
-                e.preventDefault(e)
-                @dispatch key
+        for key, value of @map
+            zz.keyListener.on key, ((v)=>
+                => @dispatch v
+            )(value)
 
 
 class ComputerController extends Controller
@@ -186,14 +224,6 @@ class ComputerController extends Controller
         else if diff.y < 0
             @dispatch 'down'
             return
-
-
-
-
-
-
-
-
 
 
 

@@ -10,7 +10,7 @@ zz.class.board = class Board extends zz.class.base
     height: 10
 
     ## Speed of the rows raising (frames per row)
-    speed: 60*7
+    speed: 60*15
 
     ## Counter to keep track of the rows rising
     counter: 0
