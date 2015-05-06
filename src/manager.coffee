@@ -10,33 +10,63 @@ class Manager
 
         @actions =
             startSingle: =>
-                @settings.players = 1
-                @startGame()
+                zz.game.start players: 1
 
             vsFriend: => 
-                @settings.players = 2
-                @settings.computer = false
-                @startGame()
+                zz.game.start  
+                    players: 2
+                    computer: false
 
             vsComputer: =>
-                @settings.computer = true
-                @settings.players = 2
+                zz.game.start  
+                    players: 2
+                    computer: true
 
-                @startGame()
+            continue: => zz.game.continue()
 
-            continue: => @pauseResume()
+            exit: => zz.game.stop()
 
-            exit: => @endGame()
+        zz.game.key.on 'ESC', => 
+            zz.game.pause() 
+        , STATE.PLAYING
 
-        zz.keyListener.on 'ESC', (=> @pauseResume())
-        zz.keyListener.on 'ESC', (=> @pauseResume()), 'menu'
-        zz.keyListener.on 'DOWN', (=> @highlight(1)), 'menu'
-        zz.keyListener.on 'UP', (=> @highlight(-1)), 'menu'
-        zz.keyListener.on 'SPACE', (=> @highlight(0)), 'menu'
-        zz.keyListener.on 'RETURN', (=> @highlight(0)), 'menu'
+        zz.game.key.on 'ESC', => 
+            zz.game.continue()
+        , STATE.PAUSED
 
-        $ => 
-            @setUpMenu()
+        zz.game.key.on 'DOWN', => 
+            @highlight 1
+            zz.game.sound.play 'click'
+        , [STATE.MENU, STATE.PAUSED]
+
+        zz.game.key.on 'UP',    => 
+            @highlight -1 
+            zz.game.sound.play 'click'
+        , [STATE.MENU, STATE.PAUSED]
+
+        zz.game.key.on 'SPACE', => 
+            @highlight 0
+            zz.game.sound.play 'click'
+        , [STATE.MENU, STATE.PAUSED]
+
+        zz.game.key.on 'RETURN', => 
+            @highlight 0
+            zz.game.sound.play 'click'
+        , [STATE.MENU, STATE.PAUSED]
+
+        zz.game.on 'start', =>
+            $('.main').hide()
+
+        zz.game.on 'pause', =>
+            @showMenu 'pause'
+
+        zz.game.on 'continue', =>
+            @showMenu null
+
+        zz.game.on 'stop', =>
+            window.location = '/'
+
+        @setUpMenu()
 
     setUpMenu: ->
         that = this
@@ -56,6 +86,7 @@ class Manager
 
     showMenu: (id)->
         $('.menu.active').removeClass 'active'
+        return unless id?
         menu = $(".menu##{id}").addClass('active')
         @highlight menu.children().first()
 
@@ -75,30 +106,6 @@ class Manager
             @highlight $('.menu.active').children().first()
             return
 
-        @highlight item.next() if index == 1 and item.next().length > 0 
-        @highlight item.prev() if index == -1 and item.prev().length > 0 
-
-    startGame: (mode)->
-        $('.main').hide()
-        @game = new Game(@settings)
-        @game.start()
-        zz.keyListener.state = 'default'
-    
-    pauseResume: ()->
-        if @game.ticker.running
-            @game.pause()
-            @showMenu 'pause'
-            zz.keyListener.state = 'menu'
-        else 
-            @game.continue()
-            $('#pause').removeClass('active')
-            zz.keyListener.state = 'default'
-            
-
-    endGame: ->
-        window.location = '/'
-        @game.stop()
-        $('.main').show()
-        $('.puzzle').hide()
-        @showMenu('main')
+        return @highlight item.next() if index == 1 and item.next().length > 0 
+        return @highlight item.prev() if index == -1 and item.prev().length > 0 
 

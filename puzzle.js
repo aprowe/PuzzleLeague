@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, CanvasBoardRenderer, CanvasRenderer, ComputerController, Controller, Game, GrayBlock, KeyListener, Manager, MusicController, PlayerController, Positional, Renderer, SoundController, Ticker, forall, zz;
+    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, BoardSoundController, CanvasBoardRenderer, CanvasRenderer, ComputerController, Controller, Game, GrayBlock, KeyListener, Manager, MusicController, PlayerController, Positional, Renderer, STATE, SoundController, Ticker, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -68,11 +68,26 @@
         }
       }
 
-      Base.prototype.on = function(event, fn) {
-        if (this._events[event] == null) {
-          this._events[event] = [];
+      Base.prototype.on = function(event, fn, state) {
+        var s;
+        if (state == null) {
+          state = '';
         }
-        return this._events[event].push(fn);
+        if (typeof state === 'object' && (state.length != null)) {
+          return (function() {
+            var k, len, results;
+            results = [];
+            for (k = 0, len = state.length; k < len; k++) {
+              s = state[k];
+              results.push(this.on(event, fn, s));
+            }
+            return results;
+          }).call(this);
+        }
+        if (this._events['' + event + state] == null) {
+          this._events['' + event + state] = [];
+        }
+        return this._events['' + event + state].push(fn);
       };
 
       Base.prototype.unbind = function(event, fn) {
@@ -81,10 +96,13 @@
         }
       };
 
-      Base.prototype.emit = function(event, args) {
+      Base.prototype.emit = function(event, args, state) {
         var fn, k, len, ref;
-        if (this['on' + event] != null) {
-          this['on' + event].call(this, args);
+        if (state == null) {
+          state = false;
+        }
+        if (!state) {
+          this.emit('' + event + zz.game.state, args, true);
         }
         if (this._events[event] == null) {
           return false;
@@ -218,7 +236,12 @@
       return Ticker;
 
     })(Base);
-    zz["class"].game = Game = (function(superClass) {
+    STATE = {
+      MENU: '-Menu',
+      PLAYING: '-Playing',
+      PAUSED: '-Paused'
+    };
+    Game = (function(superClass) {
       extend(Game, superClass);
 
       Game.prototype.defaults = {
@@ -227,84 +250,88 @@
         renderer: {}
       };
 
-      Game.prototype.settings = {
+      Game.settings = {
         players: 1,
+        music: 1.0,
+        sound: 1.0,
         computer: true
       };
 
-      function Game(settings) {
-        var b;
-        if (settings == null) {
-          settings = {};
-        }
+      function Game() {
         Game.__super__.constructor.apply(this, arguments);
-        this.settings = $.extend(this.settings, settings, true);
         zz.game = this;
+        this.state = STATE.MENU;
         this.ticker = new Ticker();
         this.ticker.on('tick', (function(_this) {
           return function() {
             return _this.loop();
           };
         })(this));
-        this.initBoards(this.settings.players);
-        this.renderer = new CanvasRenderer(this);
-        new PlayerController(this.boards[0]);
-        if (this.boards.length > 1) {
-          if (this.settings.computer) {
-            new ComputerController(this.boards[1]);
-          } else {
-            new PlayerController(this.boards[1]);
-          }
-        }
-        this.soundsControllers = (function() {
-          var k, len, ref, results;
-          ref = this.boards;
-          results = [];
-          for (k = 0, len = ref.length; k < len; k++) {
-            b = ref[k];
-            results.push(new SoundController(b));
-          }
-          return results;
-        }).call(this);
-        this.musicController = new MusicController(this);
+        this.key = new KeyListener;
+        this.music = new MusicController;
+        this.sound = new SoundController;
+        this.manager = new Manager;
       }
 
-      Game.prototype.initBoards = function(players) {
-        if (players === 1) {
-          this.boards = [new Board(0)];
-          return;
-        }
-        if (players === 2) {
-          this.boards = [new Board(0), new Board(1)];
+      Game.prototype.initBoards = function() {
+        this.boards = [];
+        this.boards.push(new Board(0));
+        new PlayerController(this.boards[0]);
+        if (this.settings.players === 2) {
+          this.boards.push(new Board(1));
           this.boards[0].opponent = this.boards[1];
-          return this.boards[1].opponent = this.boards[0];
+          this.boards[1].opponent = this.boards[0];
+          if (this.settings.computer) {
+            return new ComputerController(this.boards[1]);
+          } else {
+            return new PlayerController(this.boards[1]);
+          }
         }
       };
 
-      Game.prototype.start = function() {
-        this.emit('start');
-        return this.ticker.start();
+      Game.prototype.start = function(settings) {
+        var b, k, len, ref;
+        this.settings = $.extend(Game.settings, settings, true);
+        this.initBoards();
+        this.renderer = new CanvasRenderer(this);
+        ref = this.boards;
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          new BoardSoundController(b);
+        }
+        this.ticker.start();
+        this.state = STATE.PLAYING;
+        return this.emit('start');
       };
 
       Game.prototype["continue"] = function() {
         this.emit('continue');
-        return this.ticker.start();
-      };
-
-      Game.prototype.loop = function() {
-        return this.renderer.render();
+        this.ticker.start();
+        return this.state = STATE.PLAYING;
       };
 
       Game.prototype.stop = function() {
         this.emit('stop');
         this.ticker.stop();
         delete this.boards;
-        return delete this.ticker;
+        delete this.ticker;
+        return this.state = STATE.MENU;
       };
 
       Game.prototype.pause = function() {
         this.emit('pause');
-        return this.ticker.stop();
+        this.ticker.stop();
+        this.state = STATE.PAUSED;
+        return console.log(this.state);
+      };
+
+      Game.prototype.restart = function() {
+        this.stop();
+        return this.start();
+      };
+
+      Game.prototype.loop = function() {
+        return this.renderer.render();
       };
 
       return Game;
@@ -317,70 +344,93 @@
         this.actions = {
           startSingle: (function(_this) {
             return function() {
-              _this.settings.players = 1;
-              return _this.startGame();
+              return zz.game.start({
+                players: 1
+              });
             };
           })(this),
           vsFriend: (function(_this) {
             return function() {
-              _this.settings.players = 2;
-              _this.settings.computer = false;
-              return _this.startGame();
+              return zz.game.start({
+                players: 2,
+                computer: false
+              });
             };
           })(this),
           vsComputer: (function(_this) {
             return function() {
-              _this.settings.computer = true;
-              _this.settings.players = 2;
-              return _this.startGame();
+              return zz.game.start({
+                players: 2,
+                computer: true
+              });
             };
           })(this),
           "continue": (function(_this) {
             return function() {
-              return _this.pauseResume();
+              return zz.game["continue"]();
             };
           })(this),
           exit: (function(_this) {
             return function() {
-              return _this.endGame();
+              return zz.game.stop();
             };
           })(this)
         };
-        zz.keyListener.on('ESC', ((function(_this) {
+        zz.game.key.on('ESC', (function(_this) {
           return function() {
-            return _this.pauseResume();
+            return zz.game.pause();
           };
-        })(this)));
-        zz.keyListener.on('ESC', ((function(_this) {
+        })(this), STATE.PLAYING);
+        zz.game.key.on('ESC', (function(_this) {
           return function() {
-            return _this.pauseResume();
+            return zz.game["continue"]();
           };
-        })(this)), 'menu');
-        zz.keyListener.on('DOWN', ((function(_this) {
+        })(this), STATE.PAUSED);
+        zz.game.key.on('DOWN', (function(_this) {
           return function() {
-            return _this.highlight(1);
+            _this.highlight(1);
+            return zz.game.sound.play('click');
           };
-        })(this)), 'menu');
-        zz.keyListener.on('UP', ((function(_this) {
+        })(this), [STATE.MENU, STATE.PAUSED]);
+        zz.game.key.on('UP', (function(_this) {
           return function() {
-            return _this.highlight(-1);
+            _this.highlight(-1);
+            return zz.game.sound.play('click');
           };
-        })(this)), 'menu');
-        zz.keyListener.on('SPACE', ((function(_this) {
+        })(this), [STATE.MENU, STATE.PAUSED]);
+        zz.game.key.on('SPACE', (function(_this) {
           return function() {
-            return _this.highlight(0);
+            _this.highlight(0);
+            return zz.game.sound.play('click');
           };
-        })(this)), 'menu');
-        zz.keyListener.on('RETURN', ((function(_this) {
+        })(this), [STATE.MENU, STATE.PAUSED]);
+        zz.game.key.on('RETURN', (function(_this) {
           return function() {
-            return _this.highlight(0);
+            _this.highlight(0);
+            return zz.game.sound.play('click');
           };
-        })(this)), 'menu');
-        $((function(_this) {
+        })(this), [STATE.MENU, STATE.PAUSED]);
+        zz.game.on('start', (function(_this) {
           return function() {
-            return _this.setUpMenu();
+            return $('.main').hide();
           };
         })(this));
+        zz.game.on('pause', (function(_this) {
+          return function() {
+            return _this.showMenu('pause');
+          };
+        })(this));
+        zz.game.on('continue', (function(_this) {
+          return function() {
+            return _this.showMenu(null);
+          };
+        })(this));
+        zz.game.on('stop', (function(_this) {
+          return function() {
+            return window.location = '/';
+          };
+        })(this));
+        this.setUpMenu();
       }
 
       Manager.prototype.setUpMenu = function() {
@@ -406,6 +456,9 @@
       Manager.prototype.showMenu = function(id) {
         var menu;
         $('.menu.active').removeClass('active');
+        if (id == null) {
+          return;
+        }
         menu = $(".menu#" + id).addClass('active');
         return this.highlight(menu.children().first());
       };
@@ -427,38 +480,11 @@
           return;
         }
         if (index === 1 && item.next().length > 0) {
-          this.highlight(item.next());
+          return this.highlight(item.next());
         }
         if (index === -1 && item.prev().length > 0) {
           return this.highlight(item.prev());
         }
-      };
-
-      Manager.prototype.startGame = function(mode) {
-        $('.main').hide();
-        this.game = new Game(this.settings);
-        this.game.start();
-        return zz.keyListener.state = 'default';
-      };
-
-      Manager.prototype.pauseResume = function() {
-        if (this.game.ticker.running) {
-          this.game.pause();
-          this.showMenu('pause');
-          return zz.keyListener.state = 'menu';
-        } else {
-          this.game["continue"]();
-          $('#pause').removeClass('active');
-          return zz.keyListener.state = 'default';
-        }
-      };
-
-      Manager.prototype.endGame = function() {
-        window.location = '/';
-        this.game.stop();
-        $('.main').show();
-        $('.puzzle').hide();
-        return this.showMenu('main');
       };
 
       return Manager;
@@ -469,23 +495,16 @@
 
       Renderer.prototype.boardRenderer = function() {};
 
-      function Renderer(game) {
-        this.game = game;
+      function Renderer() {
+        var b, i, k, len, ref;
         Renderer.__super__.constructor.apply(this, arguments);
         $('.puzzle').hide();
         this.boards = [];
-        $((function(_this) {
-          return function() {
-            var b, i, k, len, ref, results;
-            ref = _this.game.boards;
-            results = [];
-            for (i = k = 0, len = ref.length; k < len; i = ++k) {
-              b = ref[i];
-              results.push(_this.boards.push(new _this.boardRenderer(b)));
-            }
-            return results;
-          };
-        })(this));
+        ref = zz.game.boards;
+        for (i = k = 0, len = ref.length; k < len; i = ++k) {
+          b = ref[i];
+          this.boards.push(new this.boardRenderer(b));
+        }
       }
 
       Renderer.prototype.render = function() {
@@ -950,8 +969,6 @@
     KeyListener = (function(superClass) {
       extend(KeyListener, superClass);
 
-      KeyListener.prototype.state = 'menu';
-
       KeyListener.prototype.MAP = {
         LEFT: 37,
         UP: 38,
@@ -971,7 +988,7 @@
               if (!_this.listening) {
                 return;
               }
-              if (_this.emit(_this.state + e.which)) {
+              if (_this.emit(e.which)) {
                 return e.preventDefault(e);
               }
             });
@@ -980,14 +997,10 @@
       }
 
       KeyListener.prototype.on = function(key, fn, state) {
-        if (state == null) {
-          state = 'default';
-        }
         if (this.MAP[key] != null) {
           key = this.MAP[key];
         }
-        key = state + key;
-        return KeyListener.__super__.on.call(this, key, fn);
+        return KeyListener.__super__.on.call(this, key, fn, state);
       };
 
       KeyListener.prototype.start = function() {
@@ -1012,17 +1025,6 @@
         this.board = board1;
         this.state = state1 != null ? state1 : 'playing';
         Controller.__super__.constructor.apply(this, arguments);
-        this.active = true;
-        zz.game.on('pause', (function(_this) {
-          return function() {
-            return _this.active = false;
-          };
-        })(this));
-        zz.game.on('continue', (function(_this) {
-          return function() {
-            return _this.active = true;
-          };
-        })(this));
       }
 
       Controller.prototype.keys = ['up', 'down', 'left', 'right', 'swap', 'advance'];
@@ -1049,9 +1051,10 @@
       };
 
       Controller.prototype.dispatch = function(key, args) {
-        if (!this.active) {
+        if (zz.game.state !== STATE.PLAYING) {
           return;
         }
+        console.log(zz.game.state);
         if (this.events[key] != null) {
           return this.events[key].call(this, args);
         }
@@ -1088,7 +1091,7 @@
         ref = this.map;
         for (key in ref) {
           value = ref[key];
-          zz.keyListener.on(key, ((function(_this) {
+          zz.game.key.on(key, ((function(_this) {
             return function(v) {
               return function() {
                 return _this.dispatch(v);
@@ -1252,7 +1255,79 @@
         match: 'match0.wav'
       };
 
-      SoundController.prototype.events = [
+      function SoundController() {
+        var key, ref, value;
+        ref = this.sounds;
+        for (key in ref) {
+          value = ref[key];
+          createjs.Sound.registerSound("assets/sounds/" + value, key);
+        }
+      }
+
+      SoundController.prototype.play = function(sound, settings) {
+        if (settings == null) {
+          settings = {};
+        }
+        return createjs.Sound.play(sound);
+      };
+
+      return SoundController;
+
+    })(Base);
+    MusicController = (function(superClass) {
+      extend(MusicController, superClass);
+
+      MusicController.prototype.initialize = function() {
+        var f, files, k, len;
+        files = [
+          {
+            id: 'intro',
+            src: 'intro.mp3'
+          }, {
+            id: 'mid',
+            src: 'mid.mp3'
+          }
+        ];
+        for (k = 0, len = files.length; k < len; k++) {
+          f = files[k];
+          f.src = 'assets/music/' + f.src;
+        }
+        createjs.Sound.alternateExtensions = ["mp3"];
+        return createjs.Sound.registerSounds(files);
+      };
+
+      function MusicController() {
+        this.initialize();
+        this.current = null;
+        zz.game.on('start', (function(_this) {
+          return function() {
+            _this.current = createjs.Sound.play('intro');
+            return _this.current.on('complete', function() {
+              _this.current = createjs.Sound.play('mid');
+              _this.current.loop = true;
+              return _this.current.volume = zz.game.settings.music;
+            });
+          };
+        })(this));
+        zz.game.on('pause', (function(_this) {
+          return function() {
+            return _this.current.volume = zz.game.settings.music / 2.0;
+          };
+        })(this));
+        zz.game.on('continue', (function(_this) {
+          return function() {
+            return _this.current.volume = zz.game.settings.music;
+          };
+        })(this));
+      }
+
+      return MusicController;
+
+    })(Base);
+    BoardSoundController = (function(superClass) {
+      extend(BoardSoundController, superClass);
+
+      BoardSoundController.prototype.events = [
         {
           on: 'match',
           sound: 'match',
@@ -1274,18 +1349,7 @@
         }
       ];
 
-      SoundController.initialize = function() {
-        var key, ref, results, value;
-        ref = SoundController.prototype.sounds;
-        results = [];
-        for (key in ref) {
-          value = ref[key];
-          results.push(createjs.Sound.registerSound("assets/sounds/" + value, key));
-        }
-        return results;
-      };
-
-      function SoundController(board1) {
+      function BoardSoundController(board1) {
         var event, k, len, ref;
         this.board = board1;
         ref = this.events;
@@ -1301,62 +1365,9 @@
         }
       }
 
-      return SoundController;
+      return BoardSoundController;
 
     })(Base);
-    MusicController = (function(superClass) {
-      extend(MusicController, superClass);
-
-      MusicController.initialize = function() {
-        var f, files, k, len;
-        files = [
-          {
-            id: 'intro',
-            src: 'intro.mp3'
-          }, {
-            id: 'mid',
-            src: 'mid.mp3'
-          }
-        ];
-        for (k = 0, len = files.length; k < len; k++) {
-          f = files[k];
-          f.src = 'assets/music/' + f.src;
-        }
-        createjs.Sound.alternateExtensions = ["mp3"];
-        return createjs.Sound.registerSounds(files);
-      };
-
-      function MusicController(game) {
-        this.game = game;
-        this.current = null;
-        this.game.on('start', (function(_this) {
-          return function() {
-            _this.current = createjs.Sound.play('intro');
-            return _this.current.on('complete', function() {
-              _this.current = createjs.Sound.play('mid');
-              return _this.current.loop = true;
-            });
-          };
-        })(this));
-        this.game.on('pause', (function(_this) {
-          return function() {
-            return _this.current.volume = 0.1;
-          };
-        })(this));
-        this.game.on('continue', (function(_this) {
-          return function() {
-            return _this.current.volume = 1.0;
-          };
-        })(this));
-      }
-
-      return MusicController;
-
-    })(Base);
-    $(function() {
-      MusicController.initialize();
-      return SoundController.initialize();
-    });
     zz["class"].board = Board = (function(superClass) {
       extend(Board, superClass);
 
@@ -1977,8 +1988,9 @@
       return BlockGroup;
 
     })(Positional);
-    zz.keyListener = new KeyListener();
-    zz.manager = new Manager();
+    $(function() {
+      return zz.game = new Game();
+    });
     return zz;
   });
 

@@ -1,9 +1,5 @@
     
-    zz.keyListener = new KeyListener()
-    
-    ## Start Menu Manager
-    zz.manager = new Manager()
-
+    $ -> zz.game = new Game()
 
     return zz
 )

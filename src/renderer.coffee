@@ -6,15 +6,14 @@ class Renderer extends Base
 
     boardRenderer: ->
 
-    constructor: (@game)->
+    constructor: ->
         super
 
         $('.puzzle').hide()
 
         @boards = []
-        $ =>    
-            for b, i in @game.boards
-                @boards.push(new @boardRenderer(b))
+        for b, i in zz.game.boards
+            @boards.push(new @boardRenderer(b))
 
     render: -> 
         board.render() for board in @boards

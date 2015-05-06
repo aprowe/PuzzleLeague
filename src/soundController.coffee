@@ -5,6 +5,55 @@ class SoundController extends Base
 		slide: 'slide.wav'
 		match: 'match0.wav'
 
+	constructor: ->
+		for key,value of @sounds
+			createjs.Sound.registerSound "assets/sounds/#{value}", key
+		
+	play: (sound, settings={})->
+		createjs.Sound.play sound
+			
+
+class MusicController extends Base
+
+
+	initialize: ->
+		files = [ 
+			{
+				id: 'intro'
+				src: 'intro.mp3'
+			},
+			{
+				id: 'mid'
+				src: 'mid.mp3'
+			}
+		]
+
+		for f in files
+			f.src = 'assets/music/' + f.src
+
+		createjs.Sound.alternateExtensions = ["mp3"];
+		createjs.Sound.registerSounds files
+
+	constructor: ->
+		@initialize()
+		@current = null
+
+		zz.game.on 'start', =>
+			@current = createjs.Sound.play 'intro'
+			@current.on 'complete', =>
+				@current = createjs.Sound.play 'mid'
+				@current.loop = true
+				@current.volume = zz.game.settings.music
+
+		zz.game.on 'pause', =>
+			@current.volume = zz.game.settings.music / 2.0
+
+		zz.game.on 'continue', =>
+			@current.volume = zz.game.settings.music
+
+
+class BoardSoundController extends Base
+
 	events: [{
 			on: 'match'
 			sound: 'match'
@@ -23,57 +72,9 @@ class SoundController extends Base
 		}
 	]
 
-	@initialize: ()->
-		for key,value of SoundController.prototype.sounds
-			createjs.Sound.registerSound "assets/sounds/#{value}", key
-		
-
 	constructor: (@board)->
 		for event in @events
 			@board.on event.on, ((e)=> =>
 				createjs.Sound.play e.sound, e.settings
 			)(event)
 
-			
-
-class MusicController extends Base
-
-
-	@initialize: ->
-		files = [ 
-			{
-				id: 'intro'
-				src: 'intro.mp3'
-			},
-			{
-				id: 'mid'
-				src: 'mid.mp3'
-			}
-		]
-
-		for f in files
-			f.src = 'assets/music/' + f.src
-
-		createjs.Sound.alternateExtensions = ["mp3"];
-		createjs.Sound.registerSounds files
-
-	constructor: (@game)->
-		@current = null
-
-		@game.on 'start', =>
-			@current = createjs.Sound.play 'intro'
-			@current.on 'complete', =>
-				@current = createjs.Sound.play 'mid'
-				@current.loop = true
-
-		@game.on 'pause', =>
-			@current.volume = 0.1
-
-		@game.on 'continue', =>
-			@current.volume = 1.0
-
-
-$ ->
-	MusicController.initialize()
-	SoundController.initialize()
-		

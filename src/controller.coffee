@@ -5,8 +5,6 @@
 
 class KeyListener extends Base
 
-    state: 'menu'
-
     MAP:
         LEFT:   37
         UP:     38
@@ -22,13 +20,12 @@ class KeyListener extends Base
 
         $ => $('body').keydown (e)=>
             return unless @listening
-            if @emit @state+e.which 
+            if @emit e.which 
                 e.preventDefault(e)
 
-    on: (key, fn, state='default')->
+    on: (key, fn, state)->
         key = @MAP[key] if @MAP[key]?
-        key = state+key
-        super key, fn
+        super key, fn, state
 
     start: ()->
         @listening = false
@@ -45,13 +42,6 @@ class Controller extends Base
 
     constructor: (@board, @state='playing')->
         super
-        @active = true
-
-        zz.game.on 'pause', =>
-            @active = false
-
-        zz.game.on 'continue', =>
-            @active = true
 
     keys: [
         'up',
@@ -71,7 +61,8 @@ class Controller extends Base
         advance:  -> @board.counter+=30
 
     dispatch: (key, args)-> 
-        return unless @active 
+        return unless zz.game.state == STATE.PLAYING
+        console.log zz.game.state
         @events[key].call(this, args) if @events[key]?
 
 class PlayerController extends Controller
@@ -105,7 +96,7 @@ class PlayerController extends Controller
         @map = @keyMaps[@board.id]
 
         for key, value of @map
-            zz.keyListener.on key, ((v)=>
+            zz.game.key.on key, ((v)=>
                 => @dispatch v
             )(value)
 

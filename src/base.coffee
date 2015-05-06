@@ -19,20 +19,21 @@ zz.class.base = class Base
 		for key, value of @defaults
 			this[key] = value
 
-	on: (event, fn)->
-		unless @_events[event]?
-			@_events[event] = []
+	on: (event, fn, state='')->
+		return (@on event, fn, s for s in state) if typeof state is 'object' and state.length?
+		unless @_events[''+event+state]?
+			@_events[''+event+state] = []
 
-		@_events[event].push fn
+		@_events[''+event+state].push fn
 
 	unbind: (event, fn)->
 		unless fn?
 			@_events[event] = []
 		# @TODO
 
-	emit: (event, args)->
+	emit: (event, args, state=false)->
+		@emit ''+event+zz.game.state, args, true unless state
 		## Call the function on<event>
-		this['on'+event].call(this, args) if this['on'+event]?
 		return false unless @_events[event]?
 		fn.call(this, args) for fn in @_events[event]
 		return true
