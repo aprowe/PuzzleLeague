@@ -31,7 +31,7 @@ zz.class.board = class Board extends zz.class.base
         @counter = 0 
 
         ## Speed of rows rising
-        @speed = 60*0.1
+        @speed = 60*15
 
         @speedLevel = 1
 
@@ -455,7 +455,7 @@ zz.class.board = class Board extends zz.class.base
                 scores.sort (a,b)-> b.score - a.score
                 scores = scores[0..9]
         
-                Cookies 'highscores', JSON.stringify scores
+                Cookies 'highscores', JSON.stringify scores, expires: Infinity
                 @emit 'refreshHigh'
         , 2000
 

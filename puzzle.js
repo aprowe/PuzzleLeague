@@ -1496,7 +1496,7 @@
         this.opponent = null;
         this.lost = false;
         this.counter = 0;
-        this.speed = 60 * 0.1;
+        this.speed = 60 * 15;
         this.speedLevel = 1;
         this.speedCounter = 0;
         Object.defineProperty(this, 'grid', {
@@ -2044,7 +2044,9 @@
                 return b.score - a.score;
               });
               scores = scores.slice(0, 10);
-              Cookies('highscores', JSON.stringify(scores));
+              Cookies('highscores', JSON.stringify(scores, {
+                expires: Infinity
+              }));
               return _this.emit('refreshHigh');
             }
           };
