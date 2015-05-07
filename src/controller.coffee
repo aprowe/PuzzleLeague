@@ -13,6 +13,7 @@ class KeyListener extends Base
         SPACE:  32
         RETURN: 13
         ESC:    27
+        SHIFT:  16
 
     constructor: ->
         super
@@ -20,6 +21,7 @@ class KeyListener extends Base
 
         $ => $('body').keydown (e)=>
             return unless @listening
+            # console.log
             if @emit e.which 
                 e.preventDefault(e)
 
@@ -81,7 +83,7 @@ class PlayerController extends Controller
             87: 'up'
             68: 'right'
             83: 'down'
-            81: 'swap'
+            SHIFT: 'swap'
         }
     ]
 

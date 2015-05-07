@@ -2,8 +2,8 @@
 STATE = 
 	MENU: 'menu'
 	PLAYING: 'playing'
-	PAUSED: 'paused'
 	OVER: 'over'
+	PAUSED: 'paused'
 
 ############################################
 ## Game Class singleton

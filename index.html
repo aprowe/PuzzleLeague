@@ -3,6 +3,7 @@
     <script src='node_modules/jquery/dist/jquery.min.js'></script>
     <script src="lib/createjs.js"></script>
     <script src="lib/jquery.fullscreen.min.js"></script>
+    <script src="lib/cookies.js"></script>
     <script src='puzzle.js'></script>
     <link rel='stylesheet' href='assets/css/main.css'/>
     </head>
@@ -15,26 +16,42 @@
             <h1>The Puzzle League</h1>
             <div class='menu active' id='main' >
                 <div data-action='startSingle'>Single Player</div>
-                <div data-menu='multi' >Multi Player</div>
+                <div data-action='vsComputer'>Vs Computer</div>
+                <div data-action='vsFriend' >Vs Friend</div>
                 <div data-menu='settings' >Settings</div>
             </div>
 
-            <div class='menu' id='multi'>
-                <div data-action='vsComputer'>Vs Computer</div>
-                <div data-action='vsFriend' >Vs Friend</div>
-                <div data-action='vsOnline' >Online</div>
+            <div class='menu' id='settings'>
+                <div data-menu='controls'>Controls</div>
+                <div data-action='fullscreen'>Toggle Fullscreen</div>
                 <div data-menu='main'>Back</div>
             </div>
 
-            <div class='menu' id='settings'>
-                <div data-action=''>Key Bindings</div>
-                <div data-action='fullscreen'>Toggle Fullscreen</div>
+            <div class='menu' id='controls'>
+                <p>
+                    <h2>Player 1:</h2>
+                    Move: Arrow Keys  <br>
+                    Swap: Space <br>
+                    Pause: ESC
+
+                    <h2>Player 2:</h2>
+                    Move: W,A,S,D <br>
+                    Swap: Shift <br>
+                </p>
                 <div data-menu='main'>Back</div>
             </div>
         </div>
 
+        <div  class='pause menu' id='pause-settings' >
+            <div data-menu='controls'>Controls</div>
+            <div data-action='fullscreen'>Toggle Fullscreen</div>
+            <div data-menu='pause'>Back</div>
+        </div>
+
+
         <div  class='pause menu' id='pause' >
             <div data-action='continue'>Continue</div>
+            <div data-menu='pause-settings'>Settings</div>
             <div data-action='exit'>Exit game</div>
         </div>
 
@@ -59,7 +76,21 @@
                             0
                         </td>
                     </tr>
+
                     </table>
+                    <br>
+                    <div style='font-size: 50%'>Local High Scores</div>
+                    <table id='highscores' style='text-align: center'>
+                        </tr>
+                            <td>
+                                Alex
+                            </td>
+                            <td class='color'>
+                                20000
+                            </td>
+                        </tr>
+                    </table>
+
                 </div>    
                 <canvas class='puzzle' id='puzzle-0'></canvas>
                 <div class='combos'>
@@ -91,9 +122,9 @@
                     </table>
                 </div>
             </div>
-            <div class='message'>
-                Return to exit
-            </div>
+        </div>
+        <div class='message'>
+            Hit return to exit
         </div>
 
     </body>

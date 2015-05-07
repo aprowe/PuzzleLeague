@@ -31,7 +31,7 @@ zz.class.board = class Board extends zz.class.base
         @counter = 0 
 
         ## Speed of rows rising
-        @speed = 60*0.2
+        @speed = 60*0.1
 
         @speedLevel = 1
 
@@ -195,8 +195,11 @@ zz.class.board = class Board extends zz.class.base
         @emit 'lose', this
         @opponent.pause() if @opponent?
         @opponent.win() if @opponent?
+        @writeCookie()
 
-    win: -> @emit 'win'
+    win: -> 
+        @emit 'win'
+        @writeCookie()
 
     ## 
     # Swaps two blocks under the cursor
@@ -438,4 +441,21 @@ zz.class.board = class Board extends zz.class.base
         board.blocks.push b.clone() for b in @blocks
         return board
 
+    writeCookie: ()->
+        return if zz.game.settings.computer and @id==1
+        return if @cookie?
+        @cookie = true
+        setTimeout =>
+            scores = $.parseJSON Cookies('highscores')
+
+            if scores.length < 10 or @score > scores[scores.length-1].score 
+                name = prompt 'Highscore! Please enter your name:'
+                score = @score
+                scores.push {name: name, score: score}
+                scores.sort (a,b)-> b.score - a.score
+                scores = scores[0..9]
+        
+                Cookies 'highscores', JSON.stringify scores
+                @emit 'refreshHigh'
+        , 2000
 

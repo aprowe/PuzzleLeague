@@ -45,6 +45,21 @@ class CanvasBoardRenderer extends BoardRenderer
 
         @text = null
 
+        @initCookies()
+        @board.on 'refreshHigh', =>
+            @initCookies()
+
+    initCookies: ->
+        cookie = Cookies('highscores')
+        Cookies('highscores', JSON.stringify([]), {expires:Infinity}) unless cookie?
+        @scores = $.parseJSON cookie
+
+        $('#highscores').html ''
+        for score in @scores
+            $('<tr></tr>').append("<td>#{score.name}<td>").append("<td class='color'>#{score.score}<td>")
+                .appendTo '#highscores'
+
+
     initScore: ->
         $("#player-#{@board.id} .scoreboard").show()
         $('.combos').hide() if @board.id > 0

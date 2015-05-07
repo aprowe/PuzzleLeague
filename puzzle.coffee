@@ -189,8 +189,8 @@ root = if window? then window else this
     STATE = 
     	MENU: 'menu'
     	PLAYING: 'playing'
-    	PAUSED: 'paused'
     	OVER: 'over'
+    	PAUSED: 'paused'
 
     ############################################
     ## Game Class singleton
@@ -433,7 +433,7 @@ root = if window? then window else this
             $('.menu.active').removeClass 'active'
             return unless id?
             menu = $(".menu##{id}").addClass('active')
-            @highlight menu.children().first()
+            @highlight menu.children('div').first()
 
         highlight: (index)->
             if index == 0 and $('.highlight').length != 0 
@@ -448,11 +448,11 @@ root = if window? then window else this
             item = $('.menu.active .highlight')
 
             if item.length == 0 
-                @highlight $('.menu.active').children().first()
+                @highlight $('.menu.active').children('div').first()
                 return
 
-            return @highlight item.next() if index == 1 and item.next().length > 0 
-            return @highlight item.prev() if index == -1 and item.prev().length > 0 
+            return @highlight item.next('div') if index == 1 and item.next('div').length > 0 
+            return @highlight item.prev('div') if index == -1 and item.prev('div').length > 0 
 
 
     ################################
@@ -558,6 +558,21 @@ root = if window? then window else this
             @renderScore()
 
             @text = null
+
+            @initCookies()
+            @board.on 'refreshHigh', =>
+                @initCookies()
+
+        initCookies: ->
+            cookie = Cookies('highscores')
+            Cookies('highscores', JSON.stringify([]), {expires:Infinity}) unless cookie?
+            @scores = $.parseJSON cookie
+
+            $('#highscores').html ''
+            for score in @scores
+                $('<tr></tr>').append("<td>#{score.name}<td>").append("<td class='color'>#{score.score}<td>")
+                    .appendTo '#highscores'
+
 
         initScore: ->
             $("#player-#{@board.id} .scoreboard").show()
@@ -848,6 +863,7 @@ root = if window? then window else this
             SPACE:  32
             RETURN: 13
             ESC:    27
+            SHIFT:  16
 
         constructor: ->
             super
@@ -855,6 +871,7 @@ root = if window? then window else this
 
             $ => $('body').keydown (e)=>
                 return unless @listening
+                # console.log
                 if @emit e.which 
                     e.preventDefault(e)
 
@@ -916,7 +933,7 @@ root = if window? then window else this
                 87: 'up'
                 68: 'right'
                 83: 'down'
-                81: 'swap'
+                SHIFT: 'swap'
             }
         ]
 
@@ -1172,7 +1189,7 @@ root = if window? then window else this
             @counter = 0 
 
             ## Speed of rows rising
-            @speed = 60*0.2
+            @speed = 60*0.1
 
             @speedLevel = 1
 
@@ -1336,8 +1353,11 @@ root = if window? then window else this
             @emit 'lose', this
             @opponent.pause() if @opponent?
             @opponent.win() if @opponent?
+            @writeCookie()
 
-        win: -> @emit 'win'
+        win: -> 
+            @emit 'win'
+            @writeCookie()
 
         ## 
         # Swaps two blocks under the cursor
@@ -1579,6 +1599,23 @@ root = if window? then window else this
             board.blocks.push b.clone() for b in @blocks
             return board
 
+        writeCookie: ()->
+            return if zz.game.settings.computer and @id==1
+            return if @cookie?
+            @cookie = true
+            setTimeout =>
+                scores = $.parseJSON Cookies('highscores')
+
+                if scores.length < 10 or @score > scores[scores.length-1].score 
+                    name = prompt 'Highscore! Please enter your name:'
+                    score = @score
+                    scores.push {name: name, score: score}
+                    scores.sort (a,b)-> b.score - a.score
+                    scores = scores[0..9]
+            
+                    Cookies 'highscores', JSON.stringify scores
+                    @emit 'refreshHigh'
+            , 2000
 
 
     ############################################

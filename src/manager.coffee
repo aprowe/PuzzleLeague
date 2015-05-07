@@ -102,7 +102,7 @@ class Manager
         $('.menu.active').removeClass 'active'
         return unless id?
         menu = $(".menu##{id}").addClass('active')
-        @highlight menu.children().first()
+        @highlight menu.children('div').first()
 
     highlight: (index)->
         if index == 0 and $('.highlight').length != 0 
@@ -117,9 +117,9 @@ class Manager
         item = $('.menu.active .highlight')
 
         if item.length == 0 
-            @highlight $('.menu.active').children().first()
+            @highlight $('.menu.active').children('div').first()
             return
 
-        return @highlight item.next() if index == 1 and item.next().length > 0 
-        return @highlight item.prev() if index == -1 and item.prev().length > 0 
+        return @highlight item.next('div') if index == 1 and item.next('div').length > 0 
+        return @highlight item.prev('div') if index == -1 and item.prev('div').length > 0 
 

@@ -239,8 +239,8 @@
     STATE = {
       MENU: 'menu',
       PLAYING: 'playing',
-      PAUSED: 'paused',
-      OVER: 'over'
+      OVER: 'over',
+      PAUSED: 'paused'
     };
     Game = (function(superClass) {
       extend(Game, superClass);
@@ -497,7 +497,7 @@
           return;
         }
         menu = $(".menu#" + id).addClass('active');
-        return this.highlight(menu.children().first());
+        return this.highlight(menu.children('div').first());
       };
 
       Manager.prototype.highlight = function(index) {
@@ -513,14 +513,14 @@
         }
         item = $('.menu.active .highlight');
         if (item.length === 0) {
-          this.highlight($('.menu.active').children().first());
+          this.highlight($('.menu.active').children('div').first());
           return;
         }
-        if (index === 1 && item.next().length > 0) {
-          return this.highlight(item.next());
+        if (index === 1 && item.next('div').length > 0) {
+          return this.highlight(item.next('div'));
         }
-        if (index === -1 && item.prev().length > 0) {
-          return this.highlight(item.prev());
+        if (index === -1 && item.prev('div').length > 0) {
+          return this.highlight(item.prev('div'));
         }
       };
 
@@ -666,7 +666,32 @@
           };
         })(this));
         this.renderScore();
-        return this.text = null;
+        this.text = null;
+        this.initCookies();
+        return this.board.on('refreshHigh', (function(_this) {
+          return function() {
+            return _this.initCookies();
+          };
+        })(this));
+      };
+
+      CanvasBoardRenderer.prototype.initCookies = function() {
+        var cookie, k, len, ref, results, score;
+        cookie = Cookies('highscores');
+        if (cookie == null) {
+          Cookies('highscores', JSON.stringify([]), {
+            expires: Infinity
+          });
+        }
+        this.scores = $.parseJSON(cookie);
+        $('#highscores').html('');
+        ref = this.scores;
+        results = [];
+        for (k = 0, len = ref.length; k < len; k++) {
+          score = ref[k];
+          results.push($('<tr></tr>').append("<td>" + score.name + "<td>").append("<td class='color'>" + score.score + "<td>").appendTo('#highscores'));
+        }
+        return results;
       };
 
       CanvasBoardRenderer.prototype.initScore = function() {
@@ -1063,7 +1088,8 @@
         DOWN: 40,
         SPACE: 32,
         RETURN: 13,
-        ESC: 27
+        ESC: 27,
+        SHIFT: 16
       };
 
       function KeyListener() {
@@ -1162,7 +1188,7 @@
           87: 'up',
           68: 'right',
           83: 'down',
-          81: 'swap'
+          SHIFT: 'swap'
         }
       ];
 
@@ -1470,7 +1496,7 @@
         this.opponent = null;
         this.lost = false;
         this.counter = 0;
-        this.speed = 60 * 0.2;
+        this.speed = 60 * 0.1;
         this.speedLevel = 1;
         this.speedCounter = 0;
         Object.defineProperty(this, 'grid', {
@@ -1682,12 +1708,14 @@
           this.opponent.pause();
         }
         if (this.opponent != null) {
-          return this.opponent.win();
+          this.opponent.win();
         }
+        return this.writeCookie();
       };
 
       Board.prototype.win = function() {
-        return this.emit('win');
+        this.emit('win');
+        return this.writeCookie();
       };
 
       Board.prototype.swap = function() {
@@ -1991,6 +2019,36 @@
           board.blocks.push(b.clone());
         }
         return board;
+      };
+
+      Board.prototype.writeCookie = function() {
+        if (zz.game.settings.computer && this.id === 1) {
+          return;
+        }
+        if (this.cookie != null) {
+          return;
+        }
+        this.cookie = true;
+        return setTimeout((function(_this) {
+          return function() {
+            var name, score, scores;
+            scores = $.parseJSON(Cookies('highscores'));
+            if (scores.length < 10 || _this.score > scores[scores.length - 1].score) {
+              name = prompt('Highscore! Please enter your name:');
+              score = _this.score;
+              scores.push({
+                name: name,
+                score: score
+              });
+              scores.sort(function(a, b) {
+                return b.score - a.score;
+              });
+              scores = scores.slice(0, 10);
+              Cookies('highscores', JSON.stringify(scores));
+              return _this.emit('refreshHigh');
+            }
+          };
+        })(this), 2000);
       };
 
       return Board;
