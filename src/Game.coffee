@@ -3,6 +3,7 @@ STATE =
 	MENU: 'menu'
 	PLAYING: 'playing'
 	PAUSED: 'paused'
+	OVER: 'over'
 
 ############################################
 ## Game Class singleton
@@ -64,7 +65,7 @@ class Game extends Base
 	initBoards: ->
 		@boards = []
 		@boards.push new Board(0)
-		new ComputerController @boards[0]
+		new  PlayerController @boards[0]
 
 		if @settings.players == 2
 			@boards.push new Board(1)
@@ -75,6 +76,11 @@ class Game extends Base
 				new ComputerController @boards[1]
 			else
 				new PlayerController @boards[1]
+
+		for b in @boards
+			b.on 'lose', =>
+				console.log @state
+				@setState STATE.OVER
 
 
 

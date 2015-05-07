@@ -190,6 +190,7 @@ root = if window? then window else this
     	MENU: 'menu'
     	PLAYING: 'playing'
     	PAUSED: 'paused'
+    	OVER: 'over'
 
     ############################################
     ## Game Class singleton
@@ -251,7 +252,7 @@ root = if window? then window else this
     	initBoards: ->
     		@boards = []
     		@boards.push new Board(0)
-    		new ComputerController @boards[0]
+    		new  PlayerController @boards[0]
 
     		if @settings.players == 2
     			@boards.push new Board(1)
@@ -262,6 +263,11 @@ root = if window? then window else this
     				new ComputerController @boards[1]
     			else
     				new PlayerController @boards[1]
+
+    		for b in @boards
+    			b.on 'lose', =>
+    				console.log @state
+    				@setState STATE.OVER
 
 
 
@@ -351,6 +357,8 @@ root = if window? then window else this
 
                 exit: => zz.game.stop()
 
+                fullscreen: => $(document).toggleFullScreen()
+
             zz.game.key.on 'ESC', => 
                 zz.game.pause() 
             , STATE.PLAYING
@@ -379,6 +387,14 @@ root = if window? then window else this
                 zz.game.sound.play 'click'
             , [STATE.MENU, STATE.PAUSED]
 
+            zz.game.key.on 'RETURN', =>
+                zz.game.stop()
+            , STATE.OVER
+
+            zz.game.key.on 'ESC', =>
+                zz.game.stop()
+            , STATE.OVER
+
             zz.game.on 'start', =>
 
             zz.game.on 'pause', =>
@@ -393,6 +409,7 @@ root = if window? then window else this
             zz.game.on 'state', (state)=>
                 $('body').attr('class', '')
                 $('body').addClass "state-#{state}"
+
 
             @setUpMenu()
 
@@ -516,9 +533,11 @@ root = if window? then window else this
 
             @loadSprites()
             
+            @animate 'start'
             @animate 'swap'
             @animate 'match'
-            @animate 'loss'
+            @animate 'lose'
+            @animate 'win'
             @animate 'dispersal'
             @animate 'addGroup'
 
@@ -537,6 +556,8 @@ root = if window? then window else this
                     $('.combos').children().last.remove()
 
             @renderScore()
+
+            @text = null
 
         initScore: ->
             $("#player-#{@board.id} .scoreboard").show()
@@ -722,7 +743,7 @@ root = if window? then window else this
 
             @stage.addChild text
 
-        lossAnimation: ->
+        loseAnimation: ->
             for b in @board.blocks
                 # @hold b 
                 b.color = 0
@@ -730,6 +751,35 @@ root = if window? then window else this
                 @initBlock b
                 b.s.gotoAndPlay 'lost'
 
+            if @board.opponent?
+                @message "Defeat" 
+            else
+                @message "Game\nOver"
+
+        winAnimation: ->
+            @message "Victory!"
+
+        message: (message)->
+            @clearText()
+            text = new createjs.Text message, "40px '8BIT WONDER'", 'white'
+            text.shadow = new createjs.Shadow("#000000", 9, 9, 0);
+            text.y = 100
+            text.x = @stage.getBounds().width/2 - text.getBounds().width/2
+            @stage.addChild text
+            @text = text
+
+        clearText: ->
+            @stage.removeChild @text if @text?
+
+        startAnimation: ->
+            @message "Get\nReady"
+
+            console.log 'ahere'
+            setTimeout =>
+                @clearText()
+                @board.done 'start'
+                console.log 'here'
+            , 1500
 
         loadSprites: ()->
             @sprites = []
@@ -778,14 +828,6 @@ root = if window? then window else this
             @sprites.push new createjs.SpriteSheet data
 
 
-    class Animation
-
-        constructor: (@parent, @length)->
-
-        run: ()->
-
-        callback: ()->
-
     class CanvasRenderer extends Renderer
 
         boardRenderer: CanvasBoardRenderer
@@ -831,9 +873,7 @@ root = if window? then window else this
 
         board: {}
 
-        @state: null
-
-        constructor: (@board, @state='playing')->
+        constructor: (@board)->
             super
 
         keys: [
@@ -855,7 +895,6 @@ root = if window? then window else this
 
         dispatch: (key, args)-> 
             return unless zz.game.state == STATE.PLAYING
-            console.log zz.game.state
             @events[key].call(this, args) if @events[key]?
 
     class PlayerController extends Controller
@@ -932,6 +971,7 @@ root = if window? then window else this
                 swaps.push p2 if swaps.indexOf(p2) == -1 and p2.x > 0
 
 
+            
             for b in swaps
                 tmp = board.clone()
                 tmp.useQueue = false
@@ -1132,7 +1172,7 @@ root = if window? then window else this
             @counter = 0 
 
             ## Speed of rows rising
-            @speed = 60*15
+            @speed = 60*0.2
 
             @speedLevel = 1
 
@@ -1157,10 +1197,17 @@ root = if window? then window else this
             @cursor = new Positional
             @cursor.limit [0, @width-2, 0, @height-2]
 
+            return if clone
             ## start game ticker
-            zz.game.ticker.on 'tick', => @tick() unless clone
+            zz.game.ticker.on 'tick', => @tick()
 
-            @updateGrid() unless clone
+            @updateGrid()
+
+            @paused = true
+            setTimeout =>
+                @queue 'start', [], =>
+                    @paused = false
+            , 100
 
         #########################
         ## Retreival functions
@@ -1286,8 +1333,11 @@ root = if window? then window else this
         # Triggered on loss of game
         lose: ->
             @pause()
-            @emit 'loss', this
+            @emit 'lose', this
             @opponent.pause() if @opponent?
+            @opponent.win() if @opponent?
+
+        win: -> @emit 'win'
 
         ## 
         # Swaps two blocks under the cursor

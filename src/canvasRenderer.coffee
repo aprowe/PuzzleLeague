@@ -19,9 +19,11 @@ class CanvasBoardRenderer extends BoardRenderer
 
         @loadSprites()
         
+        @animate 'start'
         @animate 'swap'
         @animate 'match'
-        @animate 'loss'
+        @animate 'lose'
+        @animate 'win'
         @animate 'dispersal'
         @animate 'addGroup'
 
@@ -40,6 +42,8 @@ class CanvasBoardRenderer extends BoardRenderer
                 $('.combos').children().last.remove()
 
         @renderScore()
+
+        @text = null
 
     initScore: ->
         $("#player-#{@board.id} .scoreboard").show()
@@ -225,7 +229,7 @@ class CanvasBoardRenderer extends BoardRenderer
 
         @stage.addChild text
 
-    lossAnimation: ->
+    loseAnimation: ->
         for b in @board.blocks
             # @hold b 
             b.color = 0
@@ -233,6 +237,35 @@ class CanvasBoardRenderer extends BoardRenderer
             @initBlock b
             b.s.gotoAndPlay 'lost'
 
+        if @board.opponent?
+            @message "Defeat" 
+        else
+            @message "Game\nOver"
+
+    winAnimation: ->
+        @message "Victory!"
+
+    message: (message)->
+        @clearText()
+        text = new createjs.Text message, "40px '8BIT WONDER'", 'white'
+        text.shadow = new createjs.Shadow("#000000", 9, 9, 0);
+        text.y = 100
+        text.x = @stage.getBounds().width/2 - text.getBounds().width/2
+        @stage.addChild text
+        @text = text
+
+    clearText: ->
+        @stage.removeChild @text if @text?
+
+    startAnimation: ->
+        @message "Get\nReady"
+
+        console.log 'ahere'
+        setTimeout =>
+            @clearText()
+            @board.done 'start'
+            console.log 'here'
+        , 1500
 
     loadSprites: ()->
         @sprites = []

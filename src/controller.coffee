@@ -38,9 +38,7 @@ class Controller extends Base
 
     board: {}
 
-    @state: null
-
-    constructor: (@board, @state='playing')->
+    constructor: (@board)->
         super
 
     keys: [
@@ -62,7 +60,6 @@ class Controller extends Base
 
     dispatch: (key, args)-> 
         return unless zz.game.state == STATE.PLAYING
-        console.log zz.game.state
         @events[key].call(this, args) if @events[key]?
 
 class PlayerController extends Controller
@@ -139,6 +136,7 @@ class ComputerController extends Controller
             swaps.push p2 if swaps.indexOf(p2) == -1 and p2.x > 0
 
 
+        
         for b in swaps
             tmp = board.clone()
             tmp.useQueue = false

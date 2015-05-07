@@ -26,6 +26,8 @@ class Manager
 
             exit: => zz.game.stop()
 
+            fullscreen: => $(document).toggleFullScreen()
+
         zz.game.key.on 'ESC', => 
             zz.game.pause() 
         , STATE.PLAYING
@@ -54,6 +56,14 @@ class Manager
             zz.game.sound.play 'click'
         , [STATE.MENU, STATE.PAUSED]
 
+        zz.game.key.on 'RETURN', =>
+            zz.game.stop()
+        , STATE.OVER
+
+        zz.game.key.on 'ESC', =>
+            zz.game.stop()
+        , STATE.OVER
+
         zz.game.on 'start', =>
 
         zz.game.on 'pause', =>
@@ -68,6 +78,7 @@ class Manager
         zz.game.on 'state', (state)=>
             $('body').attr('class', '')
             $('body').addClass "state-#{state}"
+
 
         @setUpMenu()
 

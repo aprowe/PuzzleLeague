@@ -16,7 +16,7 @@
       return root.zz = factory.call(root);
     }
   })(function() {
-    var Animation, Base, Block, BlockGroup, Board, BoardRenderer, BoardSoundController, CanvasBoardRenderer, CanvasRenderer, ComputerController, Controller, Game, GrayBlock, KeyListener, Manager, MusicController, PlayerController, Positional, Renderer, STATE, SoundController, Ticker, forall, zz;
+    var Base, Block, BlockGroup, Board, BoardRenderer, BoardSoundController, CanvasBoardRenderer, CanvasRenderer, ComputerController, Controller, Game, GrayBlock, KeyListener, Manager, MusicController, PlayerController, Positional, Renderer, STATE, SoundController, Ticker, forall, zz;
     zz = {};
     zz["class"] = {};
     Array.prototype.remove = function(item) {
@@ -239,7 +239,8 @@
     STATE = {
       MENU: 'menu',
       PLAYING: 'playing',
-      PAUSED: 'paused'
+      PAUSED: 'paused',
+      OVER: 'over'
     };
     Game = (function(superClass) {
       extend(Game, superClass);
@@ -279,19 +280,32 @@
       };
 
       Game.prototype.initBoards = function() {
+        var b, k, len, ref, results;
         this.boards = [];
         this.boards.push(new Board(0));
-        new ComputerController(this.boards[0]);
+        new PlayerController(this.boards[0]);
         if (this.settings.players === 2) {
           this.boards.push(new Board(1));
           this.boards[0].opponent = this.boards[1];
           this.boards[1].opponent = this.boards[0];
           if (this.settings.computer) {
-            return new ComputerController(this.boards[1]);
+            new ComputerController(this.boards[1]);
           } else {
-            return new PlayerController(this.boards[1]);
+            new PlayerController(this.boards[1]);
           }
         }
+        ref = this.boards;
+        results = [];
+        for (k = 0, len = ref.length; k < len; k++) {
+          b = ref[k];
+          results.push(b.on('lose', (function(_this) {
+            return function() {
+              console.log(_this.state);
+              return _this.setState(STATE.OVER);
+            };
+          })(this)));
+        }
+        return results;
       };
 
       Game.prototype.start = function(settings) {
@@ -378,6 +392,11 @@
             return function() {
               return zz.game.stop();
             };
+          })(this),
+          fullscreen: (function(_this) {
+            return function() {
+              return $(document).toggleFullScreen();
+            };
           })(this)
         };
         zz.game.key.on('ESC', (function(_this) {
@@ -414,6 +433,16 @@
             return zz.game.sound.play('click');
           };
         })(this), [STATE.MENU, STATE.PAUSED]);
+        zz.game.key.on('RETURN', (function(_this) {
+          return function() {
+            return zz.game.stop();
+          };
+        })(this), STATE.OVER);
+        zz.game.key.on('ESC', (function(_this) {
+          return function() {
+            return zz.game.stop();
+          };
+        })(this), STATE.OVER);
         zz.game.on('start', (function(_this) {
           return function() {};
         })(this));
@@ -606,9 +635,11 @@
         }).show();
         this.stage = new createjs.Stage(this.id);
         this.loadSprites();
+        this.animate('start');
         this.animate('swap');
         this.animate('match');
-        this.animate('loss');
+        this.animate('lose');
+        this.animate('win');
         this.animate('dispersal');
         this.animate('addGroup');
         this.board.on('remove', (function(_this) {
@@ -634,7 +665,8 @@
             }
           };
         })(this));
-        return this.renderScore();
+        this.renderScore();
+        return this.text = null;
       };
 
       CanvasBoardRenderer.prototype.initScore = function() {
@@ -913,18 +945,54 @@
         return this.stage.addChild(text);
       };
 
-      CanvasBoardRenderer.prototype.lossAnimation = function() {
-        var b, k, len, ref, results;
+      CanvasBoardRenderer.prototype.loseAnimation = function() {
+        var b, k, len, ref;
         ref = this.board.blocks;
-        results = [];
         for (k = 0, len = ref.length; k < len; k++) {
           b = ref[k];
           b.color = 0;
           this.stage.removeChild(b.s);
           this.initBlock(b);
-          results.push(b.s.gotoAndPlay('lost'));
+          b.s.gotoAndPlay('lost');
         }
-        return results;
+        if (this.board.opponent != null) {
+          return this.message("Defeat");
+        } else {
+          return this.message("Game\nOver");
+        }
+      };
+
+      CanvasBoardRenderer.prototype.winAnimation = function() {
+        return this.message("Victory!");
+      };
+
+      CanvasBoardRenderer.prototype.message = function(message) {
+        var text;
+        this.clearText();
+        text = new createjs.Text(message, "40px '8BIT WONDER'", 'white');
+        text.shadow = new createjs.Shadow("#000000", 9, 9, 0);
+        text.y = 100;
+        text.x = this.stage.getBounds().width / 2 - text.getBounds().width / 2;
+        this.stage.addChild(text);
+        return this.text = text;
+      };
+
+      CanvasBoardRenderer.prototype.clearText = function() {
+        if (this.text != null) {
+          return this.stage.removeChild(this.text);
+        }
+      };
+
+      CanvasBoardRenderer.prototype.startAnimation = function() {
+        this.message("Get\nReady");
+        console.log('ahere');
+        return setTimeout((function(_this) {
+          return function() {
+            _this.clearText();
+            _this.board.done('start');
+            return console.log('here');
+          };
+        })(this), 1500);
       };
 
       CanvasBoardRenderer.prototype.loadSprites = function() {
@@ -973,19 +1041,6 @@
       return CanvasBoardRenderer;
 
     })(BoardRenderer);
-    Animation = (function() {
-      function Animation(parent, length1) {
-        this.parent = parent;
-        this.length = length1;
-      }
-
-      Animation.prototype.run = function() {};
-
-      Animation.prototype.callback = function() {};
-
-      return Animation;
-
-    })();
     CanvasRenderer = (function(superClass) {
       extend(CanvasRenderer, superClass);
 
@@ -1051,11 +1106,8 @@
 
       Controller.prototype.board = {};
 
-      Controller.state = null;
-
-      function Controller(board1, state1) {
+      function Controller(board1) {
         this.board = board1;
-        this.state = state1 != null ? state1 : 'playing';
         Controller.__super__.constructor.apply(this, arguments);
       }
 
@@ -1086,7 +1138,6 @@
         if (zz.game.state !== STATE.PLAYING) {
           return;
         }
-        console.log(zz.game.state);
         if (this.events[key] != null) {
           return this.events[key].call(this, args);
         }
@@ -1419,7 +1470,7 @@
         this.opponent = null;
         this.lost = false;
         this.counter = 0;
-        this.speed = 60 * 15;
+        this.speed = 60 * 0.2;
         this.speedLevel = 1;
         this.speedCounter = 0;
         Object.defineProperty(this, 'grid', {
@@ -1449,16 +1500,23 @@
         }
         this.cursor = new Positional;
         this.cursor.limit([0, this.width - 2, 0, this.height - 2]);
+        if (clone) {
+          return;
+        }
         zz.game.ticker.on('tick', (function(_this) {
           return function() {
-            if (!clone) {
-              return _this.tick();
-            }
+            return _this.tick();
           };
         })(this));
-        if (!clone) {
-          this.updateGrid();
-        }
+        this.updateGrid();
+        this.paused = true;
+        setTimeout((function(_this) {
+          return function() {
+            return _this.queue('start', [], function() {
+              return _this.paused = false;
+            });
+          };
+        })(this), 100);
       }
 
       Board.prototype.blockArray = function() {
@@ -1619,10 +1677,17 @@
 
       Board.prototype.lose = function() {
         this.pause();
-        this.emit('loss', this);
+        this.emit('lose', this);
         if (this.opponent != null) {
-          return this.opponent.pause();
+          this.opponent.pause();
         }
+        if (this.opponent != null) {
+          return this.opponent.win();
+        }
+      };
+
+      Board.prototype.win = function() {
+        return this.emit('win');
       };
 
       Board.prototype.swap = function() {

@@ -2,10 +2,12 @@
     <head>
     <script src='node_modules/jquery/dist/jquery.min.js'></script>
     <script src="lib/createjs.js"></script>
+    <script src="lib/jquery.fullscreen.min.js"></script>
     <script src='puzzle.js'></script>
     <link rel='stylesheet' href='assets/css/main.css'/>
     </head>
     <body class='state-menu'>
+
         <div class='wallpaper'>
         </div>
 
@@ -26,6 +28,7 @@
 
             <div class='menu' id='settings'>
                 <div data-action=''>Key Bindings</div>
+                <div data-action='fullscreen'>Toggle Fullscreen</div>
                 <div data-menu='main'>Back</div>
             </div>
         </div>
@@ -87,6 +90,9 @@
                     </tr>
                     </table>
                 </div>
+            </div>
+            <div class='message'>
+                Return to exit
             </div>
         </div>
 

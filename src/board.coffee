@@ -31,7 +31,7 @@ zz.class.board = class Board extends zz.class.base
         @counter = 0 
 
         ## Speed of rows rising
-        @speed = 60*15
+        @speed = 60*0.2
 
         @speedLevel = 1
 
@@ -56,10 +56,17 @@ zz.class.board = class Board extends zz.class.base
         @cursor = new Positional
         @cursor.limit [0, @width-2, 0, @height-2]
 
+        return if clone
         ## start game ticker
-        zz.game.ticker.on 'tick', => @tick() unless clone
+        zz.game.ticker.on 'tick', => @tick()
 
-        @updateGrid() unless clone
+        @updateGrid()
+
+        @paused = true
+        setTimeout =>
+            @queue 'start', [], =>
+                @paused = false
+        , 100
 
     #########################
     ## Retreival functions
@@ -185,8 +192,11 @@ zz.class.board = class Board extends zz.class.base
     # Triggered on loss of game
     lose: ->
         @pause()
-        @emit 'loss', this
+        @emit 'lose', this
         @opponent.pause() if @opponent?
+        @opponent.win() if @opponent?
+
+    win: -> @emit 'win'
 
     ## 
     # Swaps two blocks under the cursor
