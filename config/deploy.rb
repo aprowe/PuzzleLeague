@@ -6,7 +6,7 @@ set :repo_url, 'git@github.com:aprowe/PuzzleLeague.git'
 
 # Default branch is :master
 # ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
-set :branch, 'production'
+# set :branch, 'maast'
 
 # Default deploy_to directory is /var/www/my_app_name
 set :deploy_to, '/home/ubuntu/puzzle_league'
@@ -27,7 +27,7 @@ set :deploy_to, '/home/ubuntu/puzzle_league'
 # set :linked_files, fetch(:linked_files, []).push('config/database.yml', 'config/secrets.yml')
 
 # Default value for linked_dirs is []
-# set :linked_dirs, fetch(:linked_dirs, []).push('log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 'vendor/bundle', 'public/system')
+set :linked_dirs, fetch(:linked_dirs, []).push('node_modules')
 
 # Default value for default_env is {}
 # set :default_env, { path: "/opt/ruby/bin:$PATH" }
@@ -44,9 +44,9 @@ namespace :deploy do
   after :restart, :clear_cache do
     on roles(:web), in: :groups, limit: 3, wait: 10 do
       # Here we can do anything such as:
-      # within release_path do
-      #   execute :rake, 'cache:clear'
-      # end
+      within release_path do
+        execute :npm, 'install', '--production'
+      end
     end
   end
 
