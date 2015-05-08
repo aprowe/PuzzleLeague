@@ -1,12 +1,13 @@
 .color {
   color: #CFCC1F; }
 
-@-webkit-keyframes wallpaper {
-  0% {
-    background-position: 0px 0px; }
+@font-face {
+  font-family: '8BIT WONDER';
+  src: url(/asseats/fonts/8bitwonder.ttf); }
 
-  100% {
-    background-position: 100% 200%; } }
+@font-face {
+  font-family: 'VCR OCD MONO';
+  src: url(/assets/fonts/vcrocdmono.ttf); }
 
 body {
   font-family: '8BIT WONDER';
@@ -106,5 +107,12 @@ body {
   left: 0px;
   padding-top: 200px;
   text-align: center; }
+
+@-webkit-keyframes wallpaper {
+  0% {
+    background-position: 0px 0px; }
+
+  100% {
+    background-position: 100% 200%; } }
 
 /*# sourceMappingURL=main.css.map */

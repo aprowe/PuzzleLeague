@@ -5,16 +5,16 @@ $gold: #CFCC1F;
 	color: $gold;
 }
 
-@-webkit-keyframes wallpaper {
-
-	0% {
-		background-position: 0px 0px;
-	}
-
-	100% {
-		background-position: 100% 200%;
-	}
+@font-face {
+	font-family: '8BIT WONDER';
+	src: url(/assets/fonts/8bitwonder.ttf);
 }
+
+@font-face {
+	font-family: 'VCR OCD MONO';
+	src: url(/assets/fonts/vcrocdmono.ttf);
+}
+
 
 body {
 	font-family: '8BIT WONDER';
@@ -154,8 +154,6 @@ body {
 
 }
 
-
-
 .pause {
 	background: rgba(black, 0.5);
 	width: 100%;
@@ -169,5 +167,14 @@ body {
 	text-align: center;
 }
 
+@-webkit-keyframes wallpaper {
 
+	0% {
+		background-position: 0px 0px;
+	}
+
+	100% {
+		background-position: 100% 200%;
+	}
+}
 
