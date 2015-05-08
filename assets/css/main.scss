@@ -7,12 +7,12 @@ $gold: #CFCC1F;
 
 @font-face {
 	font-family: '8BIT WONDER';
-	src: url(/assets/fonts/8bitwonder.ttf);
+	src: url('/assets/fonts/8bitwonder.ttf');
 }
 
 @font-face {
-	font-family: 'VCR OCD MONO';
-	src: url(/assets/fonts/vcrocdmono.ttf);
+	font-family: VCR;
+	src: url('/assets/fonts/vcr.ttf');
 }
 
 
@@ -95,12 +95,12 @@ body {
 
 			display: inline-block;
 
-			font-family: VCR OSD MONO;
+			font-family: VCR;
 			text-shadow: none;
 			font-size: 25pt;
 
 			.score {
-				font-family: VCR OSD MONO;
+				font-family: VCR;
 			}
 
 			td:last-child {
@@ -113,7 +113,7 @@ body {
 			padding: 20px;
 			
 			display: inline-block;
-			font-family: VCR OSD MONO;
+			font-family: VCR;
 
 			height: 80%;
 			width: 207px;

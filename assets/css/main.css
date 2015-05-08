@@ -3,11 +3,11 @@
 
 @font-face {
   font-family: '8BIT WONDER';
-  src: url(/assets/fonts/8bitwonder.ttf); }
+  src: url('/assets/fonts/8bitwonder.ttf'); }
 
 @font-face {
-  font-family: 'VCR OCD MONO';
-  src: url(/assets/fonts/vcrocdmono.ttf); }
+  font-family: VCR;
+  src: url('/assets/fonts/vcr.ttf'); }
 
 body {
   font-family: '8BIT WONDER';
@@ -62,18 +62,18 @@ body {
       padding: 20px;
       height: 80%;
       display: inline-block;
-      font-family: VCR OSD MONO;
+      font-family: VCR;
       text-shadow: none;
       font-size: 25pt; }
       .puzzle-content .puzzle-container .scoreboard .score {
-        font-family: VCR OSD MONO; }
+        font-family: VCR; }
       .puzzle-content .puzzle-container .scoreboard td:last-child {
         min-width: 100px; }
     .puzzle-content .puzzle-container .combos {
       box-sizing: border-box;
       padding: 20px;
       display: inline-block;
-      font-family: VCR OSD MONO;
+      font-family: VCR;
       height: 80%;
       width: 207px; }
     .puzzle-content .puzzle-container .puzzle {
