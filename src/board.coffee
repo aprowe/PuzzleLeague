@@ -455,7 +455,7 @@ zz.class.board = class Board extends zz.class.base
                 scores.sort (a,b)-> b.score - a.score
                 scores = scores[0..9]
         
-                Cookies 'highscores', JSON.stringify scores, expires: Infinity
+                Cookies 'highscores', JSON.stringify(scores), expires: Infinity
                 @emit 'refreshHigh'
         , 2000
 

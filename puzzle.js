@@ -2044,9 +2044,9 @@
                 return b.score - a.score;
               });
               scores = scores.slice(0, 10);
-              Cookies('highscores', JSON.stringify(scores, {
+              Cookies('highscores', JSON.stringify(scores), {
                 expires: Infinity
-              }));
+              });
               return _this.emit('refreshHigh');
             }
           };
