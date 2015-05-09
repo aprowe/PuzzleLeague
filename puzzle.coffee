@@ -363,7 +363,15 @@ root = if window? then window else this
                 zz.game.pause() 
             , STATE.PLAYING
 
+            zz.game.key.on 80, => 
+                zz.game.pause() 
+            , STATE.PLAYING
+
             zz.game.key.on 'ESC', => 
+                zz.game.continue()
+            , STATE.PAUSED
+
+            zz.game.key.on 80, => 
                 zz.game.continue()
             , STATE.PAUSED
 
@@ -871,7 +879,7 @@ root = if window? then window else this
 
             $ => $('body').keydown (e)=>
                 return unless @listening
-                # console.log
+                console.log e.which
                 if @emit e.which 
                     e.preventDefault(e)
 
@@ -926,6 +934,8 @@ root = if window? then window else this
                 DOWN:  'down'
                 SPACE: 'swap'
                 ESC:   'exit'
+                77:    'swap'
+                80:    'exit'
             },
             {
                 ## Player 2
@@ -934,6 +944,7 @@ root = if window? then window else this
                 68: 'right'
                 83: 'down'
                 SHIFT: 'swap'
+                81: 'swap'
             }
         ]
 
@@ -1123,7 +1134,7 @@ root = if window? then window else this
     				@current.volume = zz.game.settings.music
 
     		zz.game.on 'pause', =>
-    			@current.volume = zz.game.settings.music / 2.0
+    			@current.volume = zz.game.settings.music / 3.0
 
     		zz.game.on 'continue', =>
     			@current.volume = zz.game.settings.music

@@ -46,7 +46,7 @@ class MusicController extends Base
 				@current.volume = zz.game.settings.music
 
 		zz.game.on 'pause', =>
-			@current.volume = zz.game.settings.music / 2.0
+			@current.volume = zz.game.settings.music / 3.0
 
 		zz.game.on 'continue', =>
 			@current.volume = zz.game.settings.music

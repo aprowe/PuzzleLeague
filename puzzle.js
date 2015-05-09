@@ -404,7 +404,17 @@
             return zz.game.pause();
           };
         })(this), STATE.PLAYING);
+        zz.game.key.on(80, (function(_this) {
+          return function() {
+            return zz.game.pause();
+          };
+        })(this), STATE.PLAYING);
         zz.game.key.on('ESC', (function(_this) {
+          return function() {
+            return zz.game["continue"]();
+          };
+        })(this), STATE.PAUSED);
+        zz.game.key.on(80, (function(_this) {
           return function() {
             return zz.game["continue"]();
           };
@@ -1101,6 +1111,7 @@
               if (!_this.listening) {
                 return;
               }
+              console.log(e.which);
               if (_this.emit(e.which)) {
                 return e.preventDefault(e);
               }
@@ -1182,13 +1193,16 @@
           RIGHT: 'right',
           DOWN: 'down',
           SPACE: 'swap',
-          ESC: 'exit'
+          ESC: 'exit',
+          77: 'swap',
+          80: 'exit'
         }, {
           65: 'left',
           87: 'up',
           68: 'right',
           83: 'down',
-          SHIFT: 'swap'
+          SHIFT: 'swap',
+          81: 'swap'
         }
       ];
 
@@ -1420,7 +1434,7 @@
         })(this));
         zz.game.on('pause', (function(_this) {
           return function() {
-            return _this.current.volume = zz.game.settings.music / 2.0;
+            return _this.current.volume = zz.game.settings.music / 3.0;
           };
         })(this));
         zz.game.on('continue', (function(_this) {

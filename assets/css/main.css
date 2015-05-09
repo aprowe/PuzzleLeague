@@ -11,11 +11,12 @@
 
 body {
   font-family: '8BIT WONDER';
+  font-family: 'VCR';
   margin: 0px;
   padding: 0px;
   min-width: 1040px;
   color: white;
-  text-shadow: 5px 5px 0px black; }
+  text-shadow: 2px 2px 0px black; }
   body:not(.menu) {
     background: black; }
 
@@ -44,7 +45,8 @@ body {
     display: none; }
   .main h1 {
     padding-top: 30px;
-    font-size: 5em; }
+    font-size: 5em;
+    font-family: '8BIT WONDER'; }
 
 .puzzle-content {
   text-align: center; }

@@ -32,7 +32,15 @@ class Manager
             zz.game.pause() 
         , STATE.PLAYING
 
+        zz.game.key.on 80, => 
+            zz.game.pause() 
+        , STATE.PLAYING
+
         zz.game.key.on 'ESC', => 
+            zz.game.continue()
+        , STATE.PAUSED
+
+        zz.game.key.on 80, => 
             zz.game.continue()
         , STATE.PAUSED
 
