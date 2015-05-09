@@ -362,8 +362,6 @@
             return _this.setState(STATE.MENU);
           };
         })(this));
-        preload.loadFile("assets/music/mid.mp3");
-        preload.loadFile("assets/music/intro.mp3");
         preload.loadFile("assets/sprites/grey.png");
         preload.loadFile("assets/sprites/purple.png");
         preload.loadFile("assets/sprites/green.png");
