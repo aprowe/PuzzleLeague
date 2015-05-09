@@ -363,6 +363,15 @@
           };
         })(this));
         preload.installPlugin(createjs.Sound);
+        preload.alternateExtensions = ["mp3"];
+        preload.loadFile({
+          id: 'intro',
+          src: '/assets/music/intro.mp3'
+        });
+        preload.loadFile({
+          id: 'mid',
+          src: '/assets/music/mid.mp3'
+        });
         preload.loadFile("assets/sprites/grey.png");
         preload.loadFile("assets/sprites/purple.png");
         preload.loadFile("assets/sprites/green.png");
@@ -1419,27 +1428,7 @@
     MusicController = (function(superClass) {
       extend(MusicController, superClass);
 
-      MusicController.prototype.initialize = function() {
-        var f, files, k, len;
-        files = [
-          {
-            id: 'intro',
-            src: 'intro.mp3'
-          }, {
-            id: 'mid',
-            src: 'mid.mp3'
-          }
-        ];
-        for (k = 0, len = files.length; k < len; k++) {
-          f = files[k];
-          f.src = 'assets/music/' + f.src;
-        }
-        createjs.Sound.alternateExtensions = ["mp3"];
-        return createjs.Sound.registerSounds(files);
-      };
-
       function MusicController() {
-        this.initialize();
         this.current = null;
         zz.game.on('start', (function(_this) {
           return function() {

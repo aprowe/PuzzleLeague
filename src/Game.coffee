@@ -147,6 +147,10 @@ class Game extends Base
 		preload.addEventListener "complete", => @setState STATE.MENU
 		preload.installPlugin(createjs.Sound);
 
+		preload.alternateExtensions = ["mp3"];
+		preload.loadFile id: 'intro', src:'/assets/music/intro.mp3'
+		preload.loadFile id: 'mid', src:'/assets/music/mid.mp3'
+
 		preload.loadFile "assets/sprites/grey.png"
 		preload.loadFile "assets/sprites/purple.png"
 		preload.loadFile "assets/sprites/green.png"

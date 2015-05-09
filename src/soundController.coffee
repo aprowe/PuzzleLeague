@@ -16,26 +16,7 @@ class SoundController extends Base
 class MusicController extends Base
 
 
-	initialize: ->
-		files = [ 
-			{
-				id: 'intro'
-				src: 'intro.mp3'
-			},
-			{
-				id: 'mid'
-				src: 'mid.mp3'
-			}
-		]
-
-		for f in files
-			f.src = 'assets/music/' + f.src
-
-		createjs.Sound.alternateExtensions = ["mp3"];
-		createjs.Sound.registerSounds files
-
 	constructor: ->
-		@initialize()
 		@current = null
 
 		zz.game.on 'start', =>

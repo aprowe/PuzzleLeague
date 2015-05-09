@@ -334,6 +334,10 @@ root = if window? then window else this
     		preload.addEventListener "complete", => @setState STATE.MENU
     		preload.installPlugin(createjs.Sound);
 
+    		preload.alternateExtensions = ["mp3"];
+    		preload.loadFile id: 'intro', src:'/assets/music/intro.mp3'
+    		preload.loadFile id: 'mid', src:'/assets/music/mid.mp3'
+
     		preload.loadFile "assets/sprites/grey.png"
     		preload.loadFile "assets/sprites/purple.png"
     		preload.loadFile "assets/sprites/green.png"
@@ -1118,26 +1122,7 @@ root = if window? then window else this
     class MusicController extends Base
 
 
-    	initialize: ->
-    		files = [ 
-    			{
-    				id: 'intro'
-    				src: 'intro.mp3'
-    			},
-    			{
-    				id: 'mid'
-    				src: 'mid.mp3'
-    			}
-    		]
-
-    		for f in files
-    			f.src = 'assets/music/' + f.src
-
-    		createjs.Sound.alternateExtensions = ["mp3"];
-    		createjs.Sound.registerSounds files
-
     	constructor: ->
-    		@initialize()
     		@current = null
 
     		zz.game.on 'start', =>
