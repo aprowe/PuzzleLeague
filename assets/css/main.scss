@@ -35,6 +35,10 @@ body {
 	body:not(.state-loading) & {
 		display: none;
 	}
+
+	text-align:center;
+	margin-top: 200px;
+
 }
 
 .message {
@@ -59,6 +63,7 @@ body {
 	background-image: url(/assets/images/menu2.png);
 	animation: wallpaper 15s linear infinite;
 	-webkit-animation: wallpaper 25s linear infinite;	
+	animation: wallpaper 25s linear infinite;	
 	z-index: -1;
 }
 
@@ -180,6 +185,17 @@ body {
 }
 
 @-webkit-keyframes wallpaper {
+
+	0% {
+		background-position: 0px 0px;
+	}
+
+	100% {
+		background-position: 100% 200%;
+	}
+}
+
+@keyframes wallpaper {
 
 	0% {
 		background-position: 0px 0px;

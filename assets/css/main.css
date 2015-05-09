@@ -20,8 +20,11 @@ body {
   body:not(.menu) {
     background: black; }
 
-body:not(.state-loading) .loading {
-  display: none; }
+.loading {
+  text-align: center;
+  margin-top: 200px; }
+  body:not(.state-loading) .loading {
+    display: none; }
 
 .message {
   text-align: center; }
@@ -38,6 +41,7 @@ body:not(.state-loading) .loading {
   background-image: url(/assets/images/menu2.png);
   animation: wallpaper 15s linear infinite;
   -webkit-animation: wallpaper 25s linear infinite;
+  animation: wallpaper 25s linear infinite;
   z-index: -1; }
   body:not(.state-menu) .wallpaper {
     display: none; }
@@ -116,6 +120,13 @@ body:not(.state-loading) .loading {
   text-align: center; }
 
 @-webkit-keyframes wallpaper {
+  0% {
+    background-position: 0px 0px; }
+
+  100% {
+    background-position: 100% 200%; } }
+
+@keyframes wallpaper {
   0% {
     background-position: 0px 0px; }
 
