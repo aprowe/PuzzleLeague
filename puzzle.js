@@ -362,6 +362,7 @@
             return _this.setState(STATE.MENU);
           };
         })(this));
+        preload.installPlugin(createjs.Sound);
         preload.loadFile("assets/sprites/grey.png");
         preload.loadFile("assets/sprites/purple.png");
         preload.loadFile("assets/sprites/green.png");
