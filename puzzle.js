@@ -1455,7 +1455,7 @@
           on: 'match',
           sound: 'match',
           settings: {
-            volume: 0.5
+            volume: 0.3
           }
         }, {
           on: 'cursorMove',
