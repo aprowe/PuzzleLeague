@@ -53,6 +53,8 @@ body:not(.state-loading) .loading {
 
 .puzzle-content {
   text-align: center; }
+  body.state-loading .puzzle-content {
+    display: none; }
   body.state-menu .puzzle-content {
     display: none; }
   .puzzle-content .puzzle-container {

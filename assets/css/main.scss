@@ -78,6 +78,9 @@ body {
 
 
 .puzzle-content {
+	body.state-loading & {
+		display: none;
+	}
 	body.state-menu & {
 		display: none;
 	}
@@ -129,6 +132,7 @@ body {
 
 		.puzzle {
 			display: inline-block;
+			
 
 			padding: 0px 5px;
 			margin-right: 5px;
