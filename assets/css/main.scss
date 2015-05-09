@@ -31,6 +31,12 @@ body {
 	}
 }
 
+.loading {
+	body:not(.state-loading) & {
+		display: none;
+	}
+}
+
 .message {
 	text-align: center;
 	body:not(.state-over) & {

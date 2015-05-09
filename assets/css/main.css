@@ -20,6 +20,9 @@ body {
   body:not(.menu) {
     background: black; }
 
+body:not(.state-loading) .loading {
+  display: none; }
+
 .message {
   text-align: center; }
   body:not(.state-over) .message {

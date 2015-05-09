@@ -238,6 +238,7 @@
     })(Base);
     STATE = {
       MENU: 'menu',
+      LOADING: 'loading',
       PLAYING: 'playing',
       OVER: 'over',
       PAUSED: 'paused'
@@ -261,8 +262,9 @@
       function Game() {
         Game.__super__.constructor.apply(this, arguments);
         zz.game = this;
-        this.state = STATE.MENU;
+        this.state = STATE.LOADING;
         this.ticker = new Ticker();
+        this.loadAssets();
         this.ticker.on('tick', (function(_this) {
           return function() {
             return _this.loop();
@@ -350,6 +352,24 @@
 
       Game.prototype.loop = function() {
         return this.renderer.render();
+      };
+
+      Game.prototype.loadAssets = function() {
+        var preload;
+        preload = new createjs.LoadQueue();
+        preload.addEventListener("fileload", (function(_this) {
+          return function() {
+            return _this.setState(STATE.MENU);
+          };
+        })(this));
+        preload.loadFile("assets/music/mid.mp3");
+        preload.loadFile("assets/music/intro.mp3");
+        preload.loadFile("assets/sprites/grey.png");
+        preload.loadFile("assets/sprites/purple.png");
+        preload.loadFile("assets/sprites/green.png");
+        preload.loadFile("assets/sprites/orange.png");
+        preload.loadFile("assets/sprites/yellow.png");
+        return preload.loadFile("assets/sprites/blue.png");
       };
 
       return Game;
