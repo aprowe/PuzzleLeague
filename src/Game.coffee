@@ -144,7 +144,7 @@ class Game extends Base
 
 	loadAssets: ->
 		preload = new createjs.LoadQueue()
-		preload.addEventListener "fileload", => @setState STATE.MENU
+		preload.addEventListener "complete", => @setState STATE.MENU
 
 		preload.loadFile "assets/music/mid.mp3"
 		preload.loadFile "assets/music/intro.mp3"

@@ -357,7 +357,7 @@
       Game.prototype.loadAssets = function() {
         var preload;
         preload = new createjs.LoadQueue();
-        preload.addEventListener("fileload", (function(_this) {
+        preload.addEventListener("complete", (function(_this) {
           return function() {
             return _this.setState(STATE.MENU);
           };
