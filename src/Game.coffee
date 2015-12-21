@@ -142,15 +142,21 @@ class Game extends Base
 	loop: ->
 		@renderer.render()
 
+	## Load Assets for the game
 	loadAssets: ->
+		## Create an assets QUEUE
 		preload = new createjs.LoadQueue()
-		preload.addEventListener "complete", => @setState STATE.MENU
-		preload.installPlugin(createjs.Sound);
 
-		preload.alternateExtensions = ["mp3"];
+		## On complete, start menu
+		preload.addEventListener "complete", => @setState STATE.MENU
+
+		## Load Music
+		preload.installPlugin createjs.Sound
+		preload.alternateExtensions = ["mp3"]
 		preload.loadFile id: 'intro', src:'/assets/music/intro.mp3'
 		preload.loadFile id: 'mid', src:'/assets/music/mid.mp3'
 
+		## Load Sprites
 		preload.loadFile "assets/sprites/grey.png"
 		preload.loadFile "assets/sprites/purple.png"
 		preload.loadFile "assets/sprites/green.png"

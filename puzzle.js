@@ -666,6 +666,7 @@
       }
 
       CanvasBoardRenderer.prototype.init = function() {
+        this.text = null;
         this.id = "puzzle-" + this.board.id;
         $("#" + this.id).attr({
           width: this.board.width * this.size,
@@ -685,11 +686,6 @@
             return _this.stage.removeChild(b);
           };
         })(this));
-        this.board.on('scoreChange', (function(_this) {
-          return function() {
-            return _this.renderScore();
-          };
-        })(this));
         this.board.on('logScore', (function(_this) {
           return function(score) {
             if (!(score >= 50)) {
@@ -698,19 +694,23 @@
             $('<div></div>', {
               "class": 'color'
             }).insertAfter($('.combos').children().first()).html(score);
-            if ($('.combos').length > 20) {
+            if ($('.combos').children().length > 20) {
               return $('.combos').children().last.remove();
             }
           };
         })(this));
         this.renderScore();
-        this.text = null;
-        this.initCookies();
-        return this.board.on('refreshHigh', (function(_this) {
+        this.board.on('scoreChange', (function(_this) {
+          return function() {
+            return _this.renderScore();
+          };
+        })(this));
+        this.board.on('refreshHigh', (function(_this) {
           return function() {
             return _this.initCookies();
           };
         })(this));
+        return this.initCookies();
       };
 
       CanvasBoardRenderer.prototype.initCookies = function() {
@@ -1448,6 +1448,13 @@
         zz.game.on('continue', (function(_this) {
           return function() {
             return _this.current.volume = zz.game.settings.music;
+          };
+        })(this));
+        zz.game.on('state', (function(_this) {
+          return function(state) {
+            if (state === STATE.OVER) {
+              return _this.current.volume = 0;
+            }
           };
         })(this));
       }

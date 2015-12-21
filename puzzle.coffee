@@ -329,15 +329,21 @@ root = if window? then window else this
     	loop: ->
     		@renderer.render()
 
+    	## Load Assets for the game
     	loadAssets: ->
+    		## Create an assets QUEUE
     		preload = new createjs.LoadQueue()
-    		preload.addEventListener "complete", => @setState STATE.MENU
-    		preload.installPlugin(createjs.Sound);
 
-    		preload.alternateExtensions = ["mp3"];
+    		## On complete, start menu
+    		preload.addEventListener "complete", => @setState STATE.MENU
+
+    		## Load Music
+    		preload.installPlugin createjs.Sound
+    		preload.alternateExtensions = ["mp3"]
     		preload.loadFile id: 'intro', src:'/assets/music/intro.mp3'
     		preload.loadFile id: 'mid', src:'/assets/music/mid.mp3'
 
+    		## Load Sprites
     		preload.loadFile "assets/sprites/grey.png"
     		preload.loadFile "assets/sprites/purple.png"
     		preload.loadFile "assets/sprites/green.png"
@@ -547,6 +553,9 @@ root = if window? then window else this
         #################################
         init: ()->
 
+            ## Text message currently displayed
+            @text = null
+
             @id  = "puzzle-#{@board.id}"
 
             ## Set up board size
@@ -558,7 +567,8 @@ root = if window? then window else this
             @stage = new createjs.Stage @id
 
             @loadSprites()
-            
+                
+            ## Animation list
             @animate 'start'
             @animate 'swap'
             @animate 'match'
@@ -570,24 +580,23 @@ root = if window? then window else this
             @board.on 'remove', (b)=>
                 @stage.removeChild b
 
-            @board.on 'scoreChange', =>
-                @renderScore()
-
+            ## Setu up combo score log
             @board.on 'logScore', (score)=>
                 return unless score >= 50
                 $('<div></div>', class: 'color').insertAfter $('.combos').children().first()
                     .html (score)
 
-                if $('.combos').length > 20
+                if $('.combos').children().length > 20
                     $('.combos').children().last.remove()
 
+
+            ## Update Score
             @renderScore()
+            @board.on 'scoreChange', => @renderScore()
 
-            @text = null
-
+            ## Update High Score board
+            @board.on 'refreshHigh', => @initCookies()
             @initCookies()
-            @board.on 'refreshHigh', =>
-                @initCookies()
 
         initCookies: ->
             cookie = Cookies('highscores')
@@ -1121,7 +1130,6 @@ root = if window? then window else this
 
     class MusicController extends Base
 
-
     	constructor: ->
     		@current = null
 
@@ -1137,6 +1145,10 @@ root = if window? then window else this
 
     		zz.game.on 'continue', =>
     			@current.volume = zz.game.settings.music
+
+    		zz.game.on 'state', (state)=>
+    			if state == STATE.OVER
+    				@current.volume = 0
 
 
     class BoardSoundController extends Base

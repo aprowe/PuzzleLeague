@@ -3,11 +3,11 @@
 
 @font-face {
   font-family: '8BIT WONDER';
-  src: url('/assets/fonts/8bitwonder.ttf'); }
+  src: url("/assets/fonts/8bitwonder.ttf"); }
 
 @font-face {
   font-family: VCR;
-  src: url('/assets/fonts/vcr.ttf'); }
+  src: url("/assets/fonts/vcr.ttf"); }
 
 body {
   font-family: '8BIT WONDER';
@@ -92,7 +92,7 @@ body {
       padding: 0px 5px;
       margin-right: 5px;
       border: 2px solid #EEE;
-      background-image: url('/assets/images/back.png'); }
+      background-image: url("/assets/images/back.png"); }
 
 /**
  * Menu System
@@ -122,14 +122,12 @@ body {
 @-webkit-keyframes wallpaper {
   0% {
     background-position: 0px 0px; }
-
   100% {
     background-position: 100% 200%; } }
 
 @keyframes wallpaper {
   0% {
     background-position: 0px 0px; }
-
   100% {
     background-position: 100% 200%; } }
 

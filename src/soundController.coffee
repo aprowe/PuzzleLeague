@@ -15,7 +15,6 @@ class SoundController extends Base
 
 class MusicController extends Base
 
-
 	constructor: ->
 		@current = null
 
@@ -31,6 +30,10 @@ class MusicController extends Base
 
 		zz.game.on 'continue', =>
 			@current.volume = zz.game.settings.music
+
+		zz.game.on 'state', (state)=>
+			if state == STATE.OVER
+				@current.volume = 0
 
 
 class BoardSoundController extends Base

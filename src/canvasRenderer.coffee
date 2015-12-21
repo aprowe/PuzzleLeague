@@ -7,6 +7,9 @@ class CanvasBoardRenderer extends BoardRenderer
     #################################
     init: ()->
 
+        ## Text message currently displayed
+        @text = null
+
         @id  = "puzzle-#{@board.id}"
 
         ## Set up board size
@@ -18,7 +21,8 @@ class CanvasBoardRenderer extends BoardRenderer
         @stage = new createjs.Stage @id
 
         @loadSprites()
-        
+            
+        ## Animation list
         @animate 'start'
         @animate 'swap'
         @animate 'match'
@@ -30,24 +34,23 @@ class CanvasBoardRenderer extends BoardRenderer
         @board.on 'remove', (b)=>
             @stage.removeChild b
 
-        @board.on 'scoreChange', =>
-            @renderScore()
-
+        ## Setu up combo score log
         @board.on 'logScore', (score)=>
             return unless score >= 50
             $('<div></div>', class: 'color').insertAfter $('.combos').children().first()
                 .html (score)
 
-            if $('.combos').length > 20
+            if $('.combos').children().length > 20
                 $('.combos').children().last.remove()
 
+
+        ## Update Score
         @renderScore()
+        @board.on 'scoreChange', => @renderScore()
 
-        @text = null
-
+        ## Update High Score board
+        @board.on 'refreshHigh', => @initCookies()
         @initCookies()
-        @board.on 'refreshHigh', =>
-            @initCookies()
 
     initCookies: ->
         cookie = Cookies('highscores')
